@@ -47,9 +47,12 @@
 *********************************************************************;
 
 options ls=100 ps=72;
-* Input statement for basic testing and program development. It is replaced when program is used for Data analyses.;
+%let InPath = C:\Users\milan\Desktop\IITA Work\EPG Data\; *Folder with input file. WITH \ at the end please! Put the folder name only;
+%let InFile = CsvSwpTom-CST-SPT; *Input file name, Without extension please!;
+%let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\ComboOut\; *Folder to put the results, WITH \ at the end please!;
+x "cd ""&OutPath.""";
 Data one(keep=insectno waveform dur);
-	infile 'C:\Users\yourfilename.csv' dsd missover firstobs=2 delimiter=',' end=last;
+	infile "&InPath.&InFile..csv" dsd missover firstobs=2 delimiter=',' end=last;
 	length  insectno$ 20 waveform$ 10 dur 8; *specifies record lengths for reading variables;
 	input  insectno$ waveform$ dur; *creates variable names for input. The $ character tells SAS to treat these variables as charaters not numbers;
 
@@ -71,13 +74,17 @@ if waveform='10' then waveform='II3';
 if waveform='11' then waveform="PDL";
 
 data one; set one;
+	trt=substr(insectno,1,1);*recover treatment designations*;
     *insectno=compress(trt||insectno);
 	Transform=1; *Transform=0 will disable all transformations*;
     proc sort; by insectno;
 
 *ODS noresults; *suppresses output to "results" and "output" windows.;
 * Output statement for basic testing and program development. It is replaced when program is used for Data analyses.;
-ODS HTML file='C:\Users\tebert\OneDrive - University of Florida\Work\Deepak\Whitefly3 out'; *Directs all output to this file.;
+*ODS HTML file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\testout\CsvSwp-output.html'; *Directs all output to this file.;
+ODS HTML file="&OutPath.&InFile.-Output.html";
+*ODS EXCEL file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\Outputs\CsvSwp-output.xlsx';
+*Ods csvall file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\Outputs\CsvSwp-output.csv';
 
 Data one; set one;
       line=_n_;
@@ -314,7 +321,7 @@ Data OnlyG; Set three;
 run;
 *********************************************************************
 *  Finished creating dataset OnlyG
-* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
+**********************************     END      *********************;
 
 *********************************************************************
 *******                          Start New Method                 ***
@@ -344,15 +351,16 @@ data three; set three; drop marker1 marker2 in0;
 Data OnlyF; Set three;
 run;
 *********************************************************************
-*  Finished creating dataset OnlyF
-* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
+*  					Finished creating dataset OnlyF					*
+*********************************************************************;
 
 
 
 *********************************************************************
-*******                            Start New Method               ***
+*******  milan delete              Start New Method               ***
 *******                        define the dataset OnlyD           ***
 *********************************************************************;
+/* 
 Data three; set one; Proc sort; by insectno line;
 Data three; set three;
 	retain in0 marker1;
@@ -376,6 +384,7 @@ Data three; set three; Proc sort; by insectno line;
 data three; set three; drop marker1 marker2 in0;
 Data OnlyD; Set three;
 run;
+*/;
 *********************************************************************
 *  Finished creating dataset OnlyD
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
@@ -474,6 +483,37 @@ run;
 *  Finished creating dataset OnlySusE2
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
 
+*********************************************************************
+*******                             Start New Method              ***
+*******                        define the dataset OnlySusG       ***
+*********************************************************************;
+Data three; set one; Proc sort; by insectno line;
+Data three; set three;
+	retain in0 marker1;
+	if insectno ne in0 then do;
+		in0=insectno; marker1=0; 
+	end;
+    if compress(upcase(waveform))='G' and dur>600 then Marker1=1;
+Data three; set three;
+Proc sort; by insectno Inverter1;
+Data three; set three; drop in0;
+Data three; Set three;
+	retain in0 marker2;
+	if insectno ne in0 then do;
+	  marker2=0; in0=insectno; 
+	end;
+	if marker1=1 then marker2=1;
+	if marker1=0 and marker2=1 then marker2=1;
+Data three; set three;
+if marker2=1 then output;
+Data three; set three; Proc sort; by insectno line;
+data three; set three; drop marker1 marker2 in0;
+Data OnlySusG; Set three;
+run;
+*********************************************************************
+*  Finished creating dataset OnlySusG
+* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
+
 
 *********************************************************************
 *******                             Start New Method              ***
@@ -554,7 +594,7 @@ Time from beginning of EXPT to first probe (waveform C)
 *********************************************************************;
 
 Data Ebert; Set one;
-retain in0;
+retain in0 trt;
 if insectno ne in0 then do; in0=insectno; if waveform="NP" then TmFrstPrbFrmStrt=sumend; else TmFrstPrbFrmStrt="."; end;
 Data Ebert; Set Ebert;
  drop in0;
@@ -916,7 +956,7 @@ Data three; set one; if compress(upcase(waveform))='PD' then PDS=dur;
 Data three; set three; proc means noprint; by insectno; var PDS; output out=outsas mean=meanPDS;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-data Ebert; set Ebert; if meanPDS='.' and meanpd ne '.' then meanpds=meanpd;
+data Ebert; set Ebert; if meanPDS='.' and meanpd ne '.' then meanPDS=meanpd; 
 proc datasets nolist nodetails; delete outsas three;
 *********************************************************************
 *  Finding Mean duration of pds is finished.
@@ -1158,6 +1198,57 @@ data Ebert; set Ebert; if NumG='.' then NumG=0;
 proc datasets nolist nodetails; delete G outsas three;
 *********************************************************************
 *  Finding NumG DurG, and MeanG is finished.
+* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
+*********************************************************************;
+
+*********************************************************************
+*********************************   Start New Method    *************
+***   Find Number of sustained G by milan;
+*********************************************************************;
+Data three; set OnlyG;
+if compress(upcase(waveform))='G' and dur>600 then marker1=1; else marker1=0;
+data three; set three; proc means noprint;
+	by insectno; var marker1; output out=outsas sum=NumLngG;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+********************************************************************
+*  Finding Number of sustained G is finished.
+* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
+*********************************************************************;
+*********************************************************************
+*********************************   Start New Method    *************
+*************     Time to first sustained G from first probe milan   *****
+*********************************************************************;
+Data three; set OnlySusG; 
+retain in0 marker1;
+if in0 ne insectno then do; in0=insectno; marker1=0; end;
+if compress(upcase(waveform))="G" and dur>600 then marker1=1;
+data three; set three; if marker1=0 then output;
+data three; set three;
+proc means noprint; var sumend; by insectno; output out=outsas max=TmSusG;
+data four; set one;
+proc means noprint; var sumend; by insectno; output out=outsas1 max=runtime;
+data outsas; set outsas outsas1; merge outsas outsas1; by insectno;
+TmFrstSusG=TmSusG;
+data outsas; set outsas; drop runtime tmsusg _TYPE_ _FREQ_;
+data three; set one; retain marker1;
+data three; set three;
+retain in0 marker1;
+if in0 ne insectno then do; in0=insectno; marker1=0; end;
+if compress(upcase(waveform))="C" then marker1=1;
+Data three; set three; If marker1=0 then output;
+data three; set three; drop in0 marker1;
+Data three; set three;
+proc means noprint; var dur; by insectno; output out=outsas3 sum=Sumdur;
+Data outsas3; set outsas3; drop _TYPE_ _FREQ_;
+data outsas; set outsas outsas3; merge outsas outsas3; by insectno;
+data outsas; set outsas; TmFrstSusGFrstPrb=TmfrstSusG-Sumdur;
+data outsas; set outsas; if TmFrstSusGFrstPrb<=0 then TmFrstSusGFrstPrb=".";
+data outsas; set outsas; drop TmfrstSusG Sumdur;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas outsas1 outsas3 three;
+*********************************************************************
+*  Finding first sustained G from first probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
 *********************************************************************;
 
@@ -2261,7 +2352,7 @@ proc datasets nodetails nolist; delete three four outsas;
 
 *********************************************************************
 *********************************   Start New Method    *************
-***********      Duration of NP by hour
+***********      Duration of NP by hour milan mod to 12h
 *********************************************************************;
 Data three; set one;
 if compress(upcase(waveform))="NP" then output;
@@ -2347,6 +2438,91 @@ proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 proc datasets nodetails nolist; delete four;
+/*milan - add up to 12h below*/;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-21600>0 and sumstart<=21600 then do; ttldur= sumend-21600; marker4=1; end;
+if sumstart>21600 and sumend<=25200 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=25200 and sumend>25200 and marker4=0 then ttldur=ttldur+(25200-sumstart);
+if sumstart<21600 and sumend>25200 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp7;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-25200>0 and sumstart<=25200 then do; ttldur= sumend-25200; marker4=1; end;
+if sumstart>25200 and sumend<=28800 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=28800 and sumend>28800 and marker4=0 then ttldur=ttldur+(28800-sumstart);
+if sumstart<25200 and sumend>28800 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp8;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-28800>0 and sumstart<=28800 then do; ttldur= sumend-28800; marker4=1; end;
+if sumstart>28800 and sumend<=32400 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=32400 and sumend>32400 and marker4=0 then ttldur=ttldur+(32400-sumstart);
+if sumstart<28800 and sumend>32400 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp9;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-32400>0 and sumstart<=32400 then do; ttldur= sumend-32400; marker4=1; end;
+if sumstart>32400 and sumend<=36000 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=36000 and sumend>36000 and marker4=0 then ttldur=ttldur+(36000-sumstart);
+if sumstart<32400 and sumend>36000 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp10;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-36000>0 and sumstart<=36000 then do; ttldur= sumend-36000; marker4=1; end;
+if sumstart>36000 and sumend<=39600 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=39600 and sumend>39600 and marker4=0 then ttldur=ttldur+(39600-sumstart);
+if sumstart<36000 and sumend>39600 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp11;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
+if sumend-39600>0 and sumstart<=39600 then do; ttldur= sumend-39600; marker4=1; end;
+if sumstart>39600 and sumend<=43200 and marker4=0 then do; ttldur=ttldur+dur; marker4=1; end;
+if sumstart<=43200 and sumend>43200 and marker4=0 then ttldur=ttldur+(43200-sumstart);
+if sumstart<39600 and sumend>43200 then ttldur=3600;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp12;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
 
 Data ebert; set ebert;
 if TtlDurNP1="." then TtlDurNP1=0;
@@ -2355,6 +2531,12 @@ if TtlDurNP3="." then TtlDurNP3=0;
 if TtlDurNP4="." then TtlDurNP4=0;
 if TtlDurNP5="." then TtlDurNP5=0;
 if TtlDurNP6="." then TtlDurNP6=0;
+if TtlDurNP7="." then TtlDurNP7=0;
+if TtlDurNP8="." then TtlDurNP8=0;
+if TtlDurNP9="." then TtlDurNP9=0;
+if TtlDurNP10="." then TtlDurNP10=0;
+if TtlDurNP11="." then TtlDurNP11=0;
+if TtlDurNP12="." then TtlDurNP12=0;
 
 Run;
 *********************************************************************
@@ -2443,7 +2625,86 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete three four;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-21600>0 and sumstart<=21600 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>21600 and sumend<=25200 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=25200 and sumend>25200 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS7;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-25200>0 and sumstart<=25200 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>25200 and sumend<=28800 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=28800 and sumend>28800 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS8;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-28800>0 and sumstart<=28800 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>28800 and sumend<=32400 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=32400 and sumend>32400 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS9;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-32400>0 and sumstart<=32400 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>32400 and sumend<=36000 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=36000 and sumend>36000 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS10;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-36000>0 and sumstart<=36000 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>36000 and sumend<=39600 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=39600 and sumend>39600 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS11;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-39600>0 and sumstart<=39600 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart>39600 and sumend<=43200 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=43200 and sumend>43200 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS12;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
 
 Data ebert; set ebert;
 if NumPDS1="." then NumPDS1=0;
@@ -2452,6 +2713,12 @@ if NumPDS3="." then NumPDS3=0;
 if NumPDS4="." then NumPDS4=0;
 if NumPDS5="." then NumPDS5=0;
 if NumPDS6="." then NumPDS6=0;
+if NumPDS7="." then NumPDS7=0;
+if NumPDS8="." then NumPDS8=0;
+if NumPDS9="." then NumPDS9=0;
+if NumPDS10="." then NumPDS10=0;
+if NumPDS11="." then NumPDS11=0;
+if NumPDS12="." then NumPDS12=0;
 
 run;
 *********************************************************************
@@ -2538,15 +2805,93 @@ data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 proc datasets nodetails nolist; delete four outsas;
 
-Data ebert; set ebert;
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<25200 and sumstart>=21600 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS7 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS7="."; else MnDurPdS7=MnDurPdS7/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<28800 and sumstart>=25200 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS8 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS8="."; else MnDurPdS8=MnDurPdS8/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<32400 and sumstart>=28800 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS9 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS9="."; else MnDurPdS9=MnDurPdS9/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<36000 and sumstart>=32400 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS10 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS10="."; else MnDurPdS10=MnDurPdS10/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<39600 and sumstart>=36000 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS11 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS11="."; else MnDurPdS11=MnDurPdS11/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttldur in0 ttl1 marker4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; marker4=0; end;
+if sumstart<43200 and sumstart>=39600 then do; ttldur=ttldur+dur; ttl1=ttl1+1; marker4=1; end;
+marker4=0;
+data four; set four;
+proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS12 attl1;
+data outsas; set outsas; if attl1=0 then MnDurPdS12="."; else MnDurPdS12=MnDurPdS12/attl1;
+data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+/*Data ebert; set ebert;
 if MnDurPDS1="." then MnDurPDS1=0;
 if MnDurPDS2="." then MnDurPDS2=0;
 if MnDurPDS3="." then MnDurPDS3=0;
 if MnDurPDS4="." then MnDurPDS4=0;
 if MnDurPDS5="." then MnDurPDS5=0;
 if MnDurPDS6="." then MnDurPDS6=0;
-
-run;
+if MnDurPDS7="." then MnDurPDS7=0;
+if MnDurPDS8="." then MnDurPDS8=0;
+if MnDurPDS9="." then MnDurPDS9=0;
+if MnDurPDS10="." then MnDurPDS10=0;
+if MnDurPDS11="." then MnDurPDS11=0;
+if MnDurPDS12="." then MnDurPDS12=0;
+*horrible mistake corrected by commenting this!!!
+run*/;
 
 *********************************************************************
 *  Finding duration of PDS by hour is finished.
@@ -2637,6 +2982,85 @@ data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 proc datasets nodetails nolist; delete four outsas;
 
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-25200>0 and sumstart<=25200 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>25200 and sumend<=21600 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=21600 and sumend>21600 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF7;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-28800>0 and sumstart<=28800 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>28800 and sumend<=25200 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=25200 and sumend>25200 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF8;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-32400>0 and sumstart<=32400 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>32400 and sumend<=28800 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=28800 and sumend>28800 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF9;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-36000>0 and sumstart<=36000 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>36000 and sumend<=32400 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=32400 and sumend>32400 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF10;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-39600>0 and sumstart<=39600 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>39600 and sumend<=36000 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=36000 and sumend>36000 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF11;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttl1 in0 marker4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
+if sumend-43200>0 and sumstart<=43200 then do; ttl1= ttl1+1; marker4=1; end;
+if sumstart>43200 and sumend<=39600 and marker4=0 then do; ttl1=ttl1+1; marker4=1; end;
+if sumstart<=39600 and sumend>39600 and marker4=0 then ttl1=ttl1+1;
+marker4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumF12;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+
 Data ebert; set ebert;
 if NumF1="." then NumF1=0;
 if NumF2="." then NumF2=0;
@@ -2644,6 +3068,12 @@ if NumF3="." then NumF3=0;
 if NumF4="." then NumF4=0;
 if NumF5="." then NumF5=0;
 if NumF6="." then NumF6=0;
+if NumF7="." then NumF7=0;
+if NumF8="." then NumF8=0;
+if NumF9="." then NumF9=0;
+if NumF10="." then NumF10=0;
+if NumF11="." then NumF11=0;
+if NumF12="." then NumF12=0;
 
 run;
 *********************************************************************
@@ -2737,6 +3167,84 @@ data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 proc datasets nodetails nolist; delete four;
 
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-21600>0 and sumstart<=21600 then do; ttldur= sumend-21600; mark4=1; end;
+if sumstart>21600 and sumend<=25200 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=25200 and sumend>25200 and mark4=0 then ttldur=ttldur+(25200-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF7;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-25200>0 and sumstart<=25200 then do; ttldur= sumend-25200; mark4=1; end;
+if sumstart>25200 and sumend<=28800 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=28800 and sumend>28800 and mark4=0 then ttldur=ttldur+(28800-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF8;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-28800>0 and sumstart<=28800 then do; ttldur= sumend-28800; mark4=1; end;
+if sumstart>28800 and sumend<=32400 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=32400 and sumend>32400 and mark4=0 then ttldur=ttldur+(32400-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF9;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-32400>0 and sumstart<=32400 then do; ttldur= sumend-32400; mark4=1; end;
+if sumstart>32400 and sumend<=36000 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=36000 and sumend>36000 and mark4=0 then ttldur=ttldur+(36000-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF10;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-36000>0 and sumstart<=36000 then do; ttldur= sumend-36000; mark4=1; end;
+if sumstart>36000 and sumend<=39600 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=39600 and sumend>39600 and mark4=0 then ttldur=ttldur+(39600-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF11;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
+data four; set three;
+retain ttldur in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
+if sumend-39600>0 and sumstart<=39600 then do; ttldur= sumend-39600; mark4=1; end;
+if sumstart>39600 and sumend<=43200 and mark4=0 then do; ttldur=ttldur+dur; mark4=1; end;
+if sumstart<=43200 and sumend>43200 and mark4=0 then ttldur=ttldur+(43200-sumstart);
+mark4=0;
+data four; set four;
+proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF12;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four;
+
 Data ebert; set ebert;
 if TtlDurF1="." then TtlDurF1=0;
 if TtlDurF2="." then TtlDurF2=0;
@@ -2744,6 +3252,12 @@ if TtlDurF3="." then TtlDurF3=0;
 if TtlDurF4="." then TtlDurF4=0;
 if TtlDurF5="." then TtlDurF5=0;
 if TtlDurF6="." then TtlDurF6=0;
+if TtlDurF7="." then TtlDurF7=0;
+if TtlDurF8="." then TtlDurF8=0;
+if TtlDurF9="." then TtlDurF9=0;
+if TtlDurF10="." then TtlDurF10=0;
+if TtlDurF11="." then TtlDurF11=0;
+if TtlDurF12="." then TtlDurF12=0;
 
 run;
 *********************************************************************
@@ -2858,6 +3372,84 @@ data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 proc datasets nodetails nolist; delete four outsas;
 
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-25200>0 and sumstart<=25200 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>25200 and sumend<=21600 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=21600 and sumend>21600 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb7;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-28800>0 and sumstart<=28800 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>28800 and sumend<=25200 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=25200 and sumend>25200 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb8;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-32400>0 and sumstart<=32400 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>32400 and sumend<=28800 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=28800 and sumend>28800 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb9;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-36000>0 and sumstart<=36000 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>36000 and sumend<=32400 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=32400 and sumend>32400 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb10;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-39600>0 and sumstart<=39600 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>39600 and sumend<=36000 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=36000 and sumend>36000 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb11;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
+data four; set three;
+retain ttl1 in0 mark4;
+if in0 ne insectno then do; in0=insectno; ttl1=0; mark4=0; end;
+if sumend-43200>0 and sumstart<=43200 then do; ttl1= ttl1+1; mark4=1; end;
+if sumstart>43200 and sumend<=39600 and mark4=0 then do; ttl1=ttl1+1; mark4=1; end;
+if sumstart<=39600 and sumend>39600 and mark4=0 then ttl1=ttl1+1;
+mark4=0;
+data four; set four;
+proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb12;
+data outsas; set outsas; drop _TYPE_ _FREQ_;
+data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
+proc datasets nodetails nolist; delete four outsas;
+
 Data ebert; set ebert;
 if NumPrb1="." then NumPrb1=0;
 if NumPrb2="." then NumPrb2=0;
@@ -2865,6 +3457,12 @@ if NumPrb3="." then NumPrb3=0;
 if NumPrb4="." then NumPrb4=0;
 if NumPrb5="." then NumPrb5=0;
 if NumPrb6="." then NumPrb6=0;
+if NumPrb7="." then NumPrb7=0;
+if NumPrb8="." then NumPrb8=0;
+if NumPrb9="." then NumPrb9=0;
+if NumPrb10="." then NumPrb10=0;
+if NumPrb11="." then NumPrb11=0;
+if NumPrb12="." then NumPrb12=0;
 
 run;
 *********************************************************************
@@ -3057,9 +3655,19 @@ proc datasets nolist nodetails; delete three outsas;
 
 *********************************************************************
 *********************************   Start New Method    *************
-****     From start of last E1 to end of EPG record
+****     From start of last E1 to end of EPG record milan added
 *********************************************************************;
-data Ebert; set Ebert; TmLstE1EndRcrd=".";
+data three; set onlyE1;
+data three; set three; proc sort; by inverter1;
+data three; set three;
+	retain in0 marker1;
+	if in0 ne insectno then do; in0=insectno; marker1=0; end; else marker1=1;
+data three; set three; if marker1=0 and waveform="E1" then output;
+data three; set three; proc sort; by line;
+data three; set three; TmLstE1EndRcrd=dur;
+data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;
+proc sort; by insectno;
+data Ebert; set Ebert three; merge Ebert three; by insectno;
 *********************************************************************
 *  Finding from first E1 to end of EPG record is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3174,8 +3782,10 @@ data three; set three;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
 	if compress(upcase(waveform))ne'NP' and compress(upcase(waveform)) ne 'Z' then marker1=1;
 data three; set three; if marker1=0 then output;
-data three; set three; 
+/*data three; set three; 
 	if sumend=RecDur then DurTrmNpFllwFrstSusE2=.; else DurTrmNpFllwFrstSusE2='.'; *NOTE: This variable is set to missing in all cases;
+*milan deleted;
+*/;
 data three; set three; drop dur line sumstart RecDur sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 Proc datasets nolist nodetails; delete three;
@@ -3373,9 +3983,8 @@ Run;
 **********************************************************************;
 
 Data Ebert; Set Ebert; Drop waveform;
-Data Ebert; Set Ebert; trt=substr(insectno,1,1);*recover treatment designations*;
 Data Ebert; Set Ebert;
-	If NmbrShrtC="." then NmbrShrtC="0";
+If NmbrShrtC="." then NmbrShrtC="0";
 if MnDurPDS1="." then MnDurPDS1=0;
 if TtlDurF1="." then TtlDurF1=0;
 If NumPrb1="." then NumPrb1=0;
@@ -3431,16 +4040,78 @@ If maxdur<18000 then do;
 
 End;
 
-If maxdur<18000 and NumF6=0 then NumF6=".";
+If maxdur<21600 then do;
+		If MnDurPDS7=0 then MnDurPDS7=".";
+		If TtlDurF7=0 then TtlDurF7=".";
+		If NumPrb7=0 then NumPrb7=".";
+		If NumF7=0 then NumF7=".";
+		if TtlDurNp7=0 then TtlDurNp7=".";
+		If NumPDS7=0 then NumPDS7=".";
 
-If TmStrtEPGFrstE="." then TmStrtEPGFrstE=maxdur;
-If TmFrmFrstPrbFrstE="." then TmFrmFrstPrbFrstE=maxdur;
+End;
+
+If maxdur<25200 then do;
+		If MnDurPDS8=0 then MnDurPDS8=".";
+		If TtlDurF8=0 then TtlDurF8=".";
+		If NumPrb8=0 then NumPrb8=".";
+		If NumF8=0 then NumF8=".";
+		if TtlDurNp8=0 then TtlDurNp8=".";
+		If NumPDS8=0 then NumPDS8=".";
+
+End;
+
+If maxdur<28800 then do;
+		If MnDurPDS9=0 then MnDurPDS9=".";
+		If TtlDurF9=0 then TtlDurF9=".";
+		If NumPrb9=0 then NumPrb9=".";
+		If NumF9=0 then NumF9=".";
+		if TtlDurNp9=0 then TtlDurNp9=".";
+		If NumPDS9=0 then NumPDS9=".";
+
+End;
+
+If maxdur<32400 then do;
+		If MnDurPDS10=0 then MnDurPDS10=".";
+		If TtlDurF10=0 then TtlDurF10=".";
+		If NumPrb10=0 then NumPrb10=".";
+		If NumF10=0 then NumF10=".";
+		if TtlDurNp10=0 then TtlDurNp10=".";
+		If NumPDS10=0 then NumPDS10=".";
+
+End;
+
+If maxdur<36000 then do;
+		If MnDurPDS11=0 then MnDurPDS11=".";
+		If TtlDurF11=0 then TtlDurF11=".";
+		If NumPrb11=0 then NumPrb11=".";
+		If NumF11=0 then NumF11=".";
+		if TtlDurNp11=0 then TtlDurNp11=".";
+		If NumPDS11=0 then NumPDS11=".";
+
+End;
+
+If maxdur<39600 then do;
+		If MnDurPDS12=0 then MnDurPDS12=".";
+		If TtlDurF12=0 then TtlDurF12=".";
+		If NumPrb12=0 then NumPrb12=".";
+		If NumF12=0 then NumF12=".";
+		if TtlDurNp12=0 then TtlDurNp12=".";
+		If NumPDS12=0 then NumPDS12=".";
+
+End;
+
+If maxdur<39600 and NumF12=0 then NumF12=".";
+
+* If TmStrtEPGFrstE="." then TmStrtEPGFrstE=maxdur;
+* If TmFrmFrstPrbFrstE="." then TmFrmFrstPrbFrstE=maxdur;
 if NumE2="." then NumE2=0;
 if NumLngE2="." then NumLngE2=0;
-if TmFrstSusE2="." then TmFrstSusE2=maxdur;
-if TmFrstSusE2FrstPrb="." then TmFrstSusE2FrstPrb=maxdur;
-if TmFrstE2StrtEPG="." then TmFrstE2StrtEPG=maxdur;
-if TmFrstE2FrmFrstPrb="." then TmFrstE2FrmFrstPrb=maxdur;
+if NumLngG="." then NumLngG=0;
+* if TmFrstSusE2="." then TmFrstSusE2=maxdur;
+* if TmFrstSusE2FrstPrb="." then TmFrstSusE2FrstPrb=maxdur;
+* if TmFrstSusGFrstPrb="." then TmFrstSusGFrstPrb=maxdur;
+* if TmFrstE2StrtEPG="." then TmFrstE2StrtEPG=maxdur;
+* if TmFrstE2FrmFrstPrb="." then TmFrstE2FrmFrstPrb=maxdur;
 if TtlDurF=0 then TtlDurF=".";
 
 *********************************************************************
@@ -3560,7 +4231,7 @@ data three; set three;
 	else marker1=1;
 Data three; set three; if marker1=0 then output;
 Data three; set three; CtoFrstG=marker4;
-Data three; Set three; drop waveform dur line sumstart sumend instance inverter1 w1 in0 marker4 marker1 dur0;
+Data three; Set three; drop waveform dur line sumstart sumend instance inverter1 w1 in0 marker4 marker1; * dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 run;
 ******************************************************************
@@ -3602,7 +4273,7 @@ Data three; set three;
 	end;
 	else marker1=0;
 Data three; set three; if marker1=1 then output;
-Data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
+Data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 ******************************************************************
 *  Finding Duration of nonprobe period before the first G is finished.
@@ -3702,7 +4373,7 @@ data three; set three;
 	else marker1=1;
 data three; set three; proc sort; by line;
 data three; set three; if marker1=0 then output;
-data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
+data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 ******************************************************************
 *  Finding Time from 1st probe to 1st G is finished.
@@ -3755,7 +4426,7 @@ data three; set three;
 	end;
 	else marker1=1;
 data three; set three; if marker1=0 then output;
-data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
+data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 
 ******************************************************************
@@ -4059,38 +4730,183 @@ data Ebert; set Ebert;
 	If TtlDurF6="." then TtlDurF6="0";
 
 */;
-***********************************************************************
-***********************************************************************
-***********************************************************************
-***********************************************************************
-*******                                                      **********
-*******                                                      **********
-*******                                                      **********
-*******                   TRANSFORMATIONS                    **********
-*******                                                      **********
-*******                                                      **********
-***********************************************************************
-***********************************************************************
-***********************************************************************
-***********************************************************************;
 
+Data Ebert; Set Ebert; *make labels for the Ebert table;
+LABEL
+TmFrstPrbFrmStrt = "Time from beginning of EPG to first probe"
+CtoFrstE1 = "Number of probes to first E1 "
+NumF = "Number of F"
+DurFrstPrb = "Duration of First Probe "
+DurScndPrb = "Duration of Second Probe"
+ShrtCbfrE1 = "Duration of shortest C before first E1 in any probe "
+DurScndZ = "Duration of second non-probe event (z or np) "
+TtlDurF = "Total duration of F  "
+DurNnprbBfrFrstE1 = "Duration of nonprobe period before first E1  "
+meanpd = "Mean duration of pd "
+meanPDL = "Mean duration of pdL "
+meanPDS = "Mean duration of pdS "
+meanNPdPrb = "Mean number of pd per probe  "
+meanF = "Mean duration of F "
+TmStrtEPGFrstE = "Time from start of EPG to 1st E"
+TmFrmFrstPrbFrstE = "Time from first probe to 1st E  "
+TmBegPrbFrstE = "Time from start of probe with first E to 1st E  "
+NumG = "Number of G waveforms  "
+DurG = "Time spent in G waveform  "
+MeanG = "Mean duration of each G waveform event  "
+NumLngG = "Number of sustained G"
+TmFrstSusGFrstPrb = "Time to first sustained G from first probe"
+NumPrbsAftrFrstE = "Number of Probes after first E1"
+NmbrShrtPrbAftrFrstE = "Number of Probes<3min after first E1"
+NumE1 = "Number of E1 "
+NumLngE1BfrE2 = "Number of E1 (longer than 10 min) followed by E2 "
+NumSnglE1 = "Number of single E1 "
+NumE2 = "Number of E2 "
+NumLngE2 = "Number of sustained E2"
+DurFirstE = "Duration of first E (E1 + E2)"
+CntrbE1toE = "Contribution of E1 to phloem phase"
+DurE1FlwdFrstSusE2 = "Duration of E1 followed by first sustained E2 (Long E2)"
+DurE1FlldFrstE2 = "Duration of E1 followed by sustained E2"
+PotE2Indx = "Potential E2 Index"
+TtlDurE = "Total duration of E"
+TtlDurE1 = "Total duration of E1"
+TtlDurE1FlldSusE2 = "Total Duration of E1 followed by a sustained E2"
+TtlDurE1FlldE2 = "Total duration of E1 followed by E2"
+TtlDurSnglE1 = "Total duration of single E1"
+TtlDurE1FllwdE2PlsE2 = "Total duration of E1 followed by E2 plus E2"
+TtlDurE2 = "Total Duration of E2"
+MnDurE1 = "Mean Duration of E1"
+MnDurE2 = "Mean duration of E2"
+NumPrbs = "Number of probes"
+NmbrC = "Number of C events"
+NmbrShrtC = "Number of short C events "
+NumNP = "Number of NP"
+NmbrPD = "Number of pd"
+NmbrPDL = "Number of pdL"
+NmbrPDS = "Number of pdS"
+NmbrE1e = "Number of E1e"
+TtlDurC = "Total duration of C"
+TtlDurE1e = "Total duration of E1e"
+TotDurNnPhlPhs = "Total duration of non-phloematic phase"
+TtlDurNP = "Total duration of NP phase "
+TtlDurPD = "Total duration of PD phase"
+TtlDurPDL = "Total duration of PDL phase "
+TtlDurPDS = "Total duration of PDS phase "
+TtlPrbTm = "Total probing time "
+MnDurNP = "Mean duration of NP "
+MnDurC = "Mean duration of C "
+TmFrstSusE2 = "Time to first sustained E2  "
+TmFrstSusE2FrstPrb = "Time to first sustained E2 from first probe  "
+TmFrstSusE2StrtPrb = "Time to first sustained E2 from start of probe   "
+TmFrstE2StrtEPG = "Time to first E2 from start of EPG"
+TmFrstE2FrmFrstPrb = "Time to first E2 from first probe "
+TmFrstE2FrmPrbStrt = "Time to first E2 from start of probe  "
+TtlDurNp1 = "Duration of NP in hour 1"
+TtlDurNp2 = "Duration of NP in hour 2"
+TtlDurNp3 = "Duration of NP in hour 3"
+TtlDurNp4 = "Duration of NP in hour 4"
+TtlDurNp5 = "Duration of NP in hour 5"
+TtlDurNp6 = "Duration of NP in hour 6"
+TtlDurNp7 = "Duration of NP in hour 7"
+TtlDurNp8 = "Duration of NP in hour 8"
+TtlDurNp9 = "Duration of NP in hour 9"
+TtlDurNp10 = "Duration of NP in hour 10"
+TtlDurNp11 = "Duration of NP in hour 11"
+TtlDurNp12 = "Duration of NP in hour 12"
+NumPDS1 = "Number of PDS in hour 1"
+NumPDS2 = "Number of PDS in hour 2"
+NumPDS3 = "Number of PDS in hour 3"
+NumPDS4 = "Number of PDS in hour 4"
+NumPDS5 = "Number of PDS in hour 5"
+NumPDS6 = "Number of PDS in hour 6"
+NumPDS7 = "Number of PDS in hour 7"
+NumPDS8 = "Number of PDS in hour 8"
+NumPDS9 = "Number of PDS in hour 9"
+NumPDS10 = "Number of PDS in hour 10"
+NumPDS11 = "Number of PDS in hour 11"
+NumPDS12 = "Number of PDS in hour 12"
+MnDurPdS1 = "Mean Duration of PDS in hour 1"
+MnDurPdS2 = "Mean Duration of PDS in hour 2"
+MnDurPdS3 = "Mean Duration of PDS in hour 3"
+MnDurPdS4 = "Mean Duration of PDS in hour 4"
+MnDurPdS5 = "Mean Duration of PDS in hour 5"
+MnDurPdS6 = "Mean Duration of PDS in hour 6"
+MnDurPdS7 = "Mean Duration of PDS in hour 7"
+MnDurPdS8 = "Mean Duration of PDS in hour 8"
+MnDurPdS9 = "Mean Duration of PDS in hour 9"
+MnDurPdS10 = "Mean Duration of PDS in hour 10"
+MnDurPdS11 = "Mean Duration of PDS in hour 11"
+MnDurPdS12 = "Mean Duration of PDS in hour 12"
+NumF1 = "Number of F in hour 1"
+NumF2 = "Number of F in hour 2"
+NumF3 = "Number of F in hour 3"
+NumF4 = "Number of F in hour 4"
+NumF5 = "Number of F in hour 5"
+NumF6 = "Number of F in hour 6"
+NumF7 = "Number of F in hour 7"
+NumF8 = "Number of F in hour 8"
+NumF9 = "Number of F in hour 9"
+NumF10 = "Number of F in hour 10"
+NumF11 = "Number of F in hour 11"
+NumF12 = "Number of F in hour 12"
+TtlDurF1 = "Duration of F in hour 1"
+TtlDurF2 = "Duration of F in hour 2"
+TtlDurF3 = "Duration of F in hour 3"
+TtlDurF4 = "Duration of F in hour 4"
+TtlDurF5 = "Duration of F in hour 5"
+TtlDurF6 = "Duration of F in hour 6"
+TtlDurF7 = "Duration of F in hour 7"
+TtlDurF8 = "Duration of F in hour 8"
+TtlDurF9 = "Duration of F in hour 9"
+TtlDurF10 = "Duration of F in hour 10"
+TtlDurF11 = "Duration of F in hour 11"
+TtlDurF12 = "Duration of F in hour 12"
+NumPrb1 = "Number of probes in hour 1"
+NumPrb2 = "Number of probes in hour 2"
+NumPrb3 = "Number of probes in hour 3"
+NumPrb4 = "Number of probes in hour 4"
+NumPrb5 = "Number of probes in hour 5"
+NumPrb6 = "Number of probes in hour 6"
+NumPrb7 = "Number of probes in hour 7"
+NumPrb8 = "Number of probes in hour 8"
+NumPrb9 = "Number of probes in hour 9"
+NumPrb10 = "Number of probes in hour 10"
+NumPrb11 = "Number of probes in hour 11"
+NumPrb12 = "Number of probes in hour 12"
+TmFrstCFrstPD = "Time to first pd from beginning of first probe "
+TmEndLstPDEndPrb = "Time from end of last pd in probe to end of first probe  "
+SumPDII1 = "Duration of PD subphase I"
+SumPDII2 = "Duration of PD subphase II"
+SumPDII3 = "Duration of PD subphase III"
+TmEndPDBegE1FwdSusE2 = "Time from end of last pd to beginning of E1 followed by sustained E2"
+TmLstPdEndRcrd = "Time from end of last pd to end of EPG "
+TmLstE1EndRcrd = "Time from Last E1 to end of EPG record  "
+TmLstE2EndRcrd = "Time from Last E2 to end of EPG record  "
+maxE2 = "Duration of longest E2 "
+DurNpFllwFrstSusE2 = "Duration of NP following first sustained E2  "
+PrcntPrbC = "Percent probing spent in C "
+PrcntPrbE1 = "Percent probing spent in E1 "
+PrcntPrbE2 = "Percent probing spent in E2 "
+PrcntPrbF = "Percent probing spent in F  "
+PrcntPrbG = "Percent probing spent in G  "
+PrcntE2SusE2 = "Percent E2 spent in Sustained E2  "
+CtoFrstG = "Number of probes to first G "
+DurNnprbBfrFrstG = "Duration of nonprobe period before first G "
+meanNGPrb = "Mean number of G per probe"
+TmFrmFrstPrbFrstG = "Time from first probe to 1st G"
+TmBegPrbFrstG = "Time from start of probe with first G to 1st G"
+NumPrbsAftrFrstG = "Number of Probes after first G"
+NmbrShrtPrbAftrFrstG = "Number of Probes<3min after first G "
+sdC = "Mean Deviation of C "
+sdF = "Mean Deviation of F "
+sdG = "Mean Deviation of G "
+sdE1 = "Mean Deviation of E1 "
+sdE2 = "Mean Deviation of E2 "
+sdNP = "Mean Deviation of NP "
+MnPrbs = "Mean duration of probes"
+sdPrbs = "Mean Deviation of Probes  "
+MdnPrbs = "Median duration of probes";
+Run;
 
-***********************************************************************
-***********************************************************************
-**** Here is a good generic set of transformations                 ****
-**** Counts are sqrt transformed, durations are log transformed    ****
-***********************************************************************
-***********************************************************************;
-/*
-Data Ebert; Set Ebert;
-if transform=1 then do;
-PrcntPrbC = arsin(sqrt(PrcntPrbC/100));
-PrcntPrbE1 = arsin(sqrt(PrcntPrbE1/100));
-PrcntPrbE2 = arsin(sqrt(PrcntPrbE2/100));
-PrcntPrbF = arsin(sqrt(PrcntPrbF/100));
-PrcntPrbG = arsin(sqrt(PrcntPrbG/100));
-PrcntE2SusE2= arsin(sqrt(PrcntE2SusE2/100));
-*/;
 ********************************************************
 ********************************************************
 ********************************************************
@@ -4112,18 +4928,18 @@ PrcntE2SusE2= arsin(sqrt(PrcntE2SusE2/100));
 **       NOTE THIS PROGRAM IS REORGANIZED LIST BASED ON EBERT 1.0.SAS.                        **
 **              It is based on the SAS mimic of the Sarria workbook, but                      **
 **              the order of the variables has been changed. A few additional                 **
-**              variables were added at te probe level. Also added were variables             **
+**              variables were added at the probe level. Also added were variables            **
 **              using standard deviations and medians as used by Freddy Tjallingii's group.   **
 **                                                                                            **
 ************************************************************************************************;
 Data Ebert; Set Ebert; 
     Proc means data=ebert; 
      by trt;
-     var  NumPrbs MnPrbs sdPrbs MdnPrbs DurFrstPrb DurScndPrb TtlPrbTm;
+     var  NumPrbs MnPrbs sdPrbs MdnPrbs DurFrstPrb DurScndPrb TtlPrbTm NumPrb1 NumPrb2 NumPrb3 NumPrb4 NumPrb5 NumPrb6 NumPrb7 NumPrb8 NumPrb9 NumPrb10 NumPrb11 NumPrb12;
      title "Untransformed Means for Probe variables";
 	     Proc means data=ebert; 
      by trt;
-     var NumNP TtlDurNP MnDurNP sdNP TmFrstPrbFrmStrt DurScndZ DurNnprbBfrFrstE1 DurNpFllwFrstSusE2;
+     var NumNP TtlDurNP MnDurNP sdNP TmFrstPrbFrmStrt DurScndZ DurNnprbBfrFrstE1 DurNpFllwFrstSusE2 TtlDurNp1 TtlDurNp2 TtlDurNp3 TtlDurNp4 TtlDurNp5 TtlDurNp6 TtlDurNp7 TtlDurNp8 TtlDurNp9 TtlDurNp10 TtlDurNp11 TtlDurNp12;
      title "Untransformed Means for NP variables";
     Proc means data=ebert; 
      by trt;
@@ -4131,319 +4947,389 @@ Data Ebert; Set Ebert;
      title "Untransformed Means for C variables";
     Proc means data=ebert; 
      by trt;
-     var NumG DurG MeanG sdG CtoFrstG DurNnprbBfrFrstG meanNGPrb TmFrmFrstPrbFrstG TmBegPrbFrstG NumPrbsAftrFrstG
+     var NumG NumLngG DurG MeanG sdG TmFrstSusGFrstPrb CtoFrstG DurNnprbBfrFrstG meanNGPrb TmFrmFrstPrbFrstG TmBegPrbFrstG NumPrbsAftrFrstG
  NmbrShrtPrbAftrFrstG PrcntPrbG;
      title "Untransformed Means for G variables";
     Proc means data=ebert; 
      by trt;
-     var NumF TtlDurF meanF TtlDurF1 TtlDurF2 TtlDurF3 TtlDurF4 TtlDurF5 TtlDurF6 NumF1 NumF2 NumF3 NumF4 NumF5 NumF6 PrcntPrbF;
+     var NumF TtlDurF meanF TtlDurF1 TtlDurF2 TtlDurF3 TtlDurF4 TtlDurF5 TtlDurF6 TtlDurF7 TtlDurF8 TtlDurF9 TtlDurF10 TtlDurF11 TtlDurF12 NumF1 NumF2 NumF3 NumF4 NumF5 NumF6 NumF7 NumF8 NumF9 NumF10 NumF11 NumF12 PrcntPrbF;
      title "Untransformed Means for F variables";
     Proc means data=ebert; 
      by trt;
-     var meanpd meanPDL meanPDS meanNPdPrb NmbrPD NmbrPDL NmbrPDS TtlDurPD TtlDurPDL TtlDurPDS NumPDS1 NumPDS2
- NumPDS3 NumPDS4 NumPDS5 NumPDS6 MnDurPdS1 MnDurPdS2 MnDurPdS3 MnDurPdS4 MnDurPdS5 MnDurPdS6 TmFrstCFrstPD 
+     var meanpd meanPDS meanNPdPrb NmbrPD NmbrPDS TtlDurPD TtlDurPDS NumPDS1 NumPDS2
+ NumPDS3 NumPDS4 NumPDS5 NumPDS6 NumPDS7 NumPDS8 NumPDS9 NumPDS10 NumPDS11 NumPDS12 MnDurPdS1 MnDurPdS2 MnDurPdS3 MnDurPdS4 MnDurPdS5 MnDurPdS6 MnDurPdS7 MnDurPdS8 MnDurPdS9 MnDurPdS10 MnDurPdS11 MnDurPdS12 TmFrstCFrstPD 
  TmEndLstPDEndPrb;
+ * Milan removed: meanPDL NmbrPDL TtlDurPDL;
      title "Untransformed Means for pd variables";
     Proc means data=ebert; 
      by trt;
      var NumE1 TtlDurE1 MnDurE1 sdE1 CtoFrstE1 TmStrtEPGFrstE TmFrmFrstPrbFrstE TmBegPrbFrstE NumPrbsAftrFrstE
            NmbrShrtPrbAftrFrstE NumLngE1BfrE2 NumSnglE1 DurFirstE CntrbE1toE DurE1FlwdFrstSusE2 DurE1FlldFrstE2 
-           TtlDurE1FlldSusE2 TtlDurE1FlldE2 TtlDurSnglE1;
+           TtlDurE1FlldSusE2 TtlDurE1FlldE2 TtlDurSnglE1 PrcntPrbE1;
      title "Untransformed Means for E1 variables";
     Proc means data=ebert; 
      by trt;
      var NumE2 NumLngE2 TtlDurE2 MnDurE2 sdE2 TmFrstSusE2FrstPrb TmFrstSusE2StrtPrb TmFrstE2StrtEPG TmFrstE2FrmFrstPrb
-            TmFrstE2FrmPrbStrt TmLstE2EndRcrd maxE2 PrcntPrbE2 PrcntE2SusE2;
+            TmFrstE2FrmPrbStrt TmLstE1EndRcrd TmLstE2EndRcrd maxE2 PrcntPrbE2 PrcntE2SusE2;
      title 'Untransformed Means for E2 variables';
     Proc means data=ebert; 
      by trt;
      var PotE2Indx TtlDurE TtlDurE1FllwdE2PlsE2 TotDurNnPhlPhs TmFrstSusE2;
      title "Untransformed Means for E1+E2 variables";
 
+*removing missing and all 0 variables;
+options symbolgen;
+/* Create two macro variables, NUM_QTY and CHAR_QTY, to hold */
+/* the number of numeric and character variables, respectively. */
+/* These will be used to define the number of elements in the arrays */
+/* in the next DATA step. */
+data _null_;
+   set Ebert (obs=1);
+   array num_vars[*] _NUMERIC_;
+   array char_vars[*] _CHARACTER_;
+   call symputx('num_qty', dim(num_vars));
+   call symputx('char_qty', dim(char_vars));
+run;
 
+data _null_;
+   set Ebert end=finished;
+
+   /* Use the reserved word _NUMERIC_ to load all numeric variables  */
+   /* into the NUM_VARS array.  Use the reserved word _CHARACTER_ to */ 
+   /* to load all character variables into the CHAR_VARS array.      */
+   array num_vars[*] _NUMERIC_;
+   array char_vars[*] _CHARACTER_;
+
+   /* Create 'flag' arrays for the variables in NUM_VARS and CHAR_VARS. */
+   /* Initialize their values to 'missing'.  Values initialized in an   */
+   /* ARRAY statement are retained.                                     */
+   array num_miss [&num_qty] $ (&num_qty * 'missing');
+   array char_miss [&char_qty] $ (&char_qty * 'missing'); 
+  
+   /* LIST will contain the list of variables to be dropped. */
+   /* Ensure that its length is sufficient. */
+   length list $ 250; 
+  
+   /* Check for non-missing values.  Reassign the corresponding 'flag' */
+   /* value accordingly.                                               */
+   do i=1 to dim(num_vars);
+      if num_vars(i) ne . and num_vars(i) ne 0 then num_miss(i)='non-miss';
+   end;
+   do i=1 to dim(char_vars);
+      if char_vars(i) ne '' and char_vars(i) ne '0' then char_miss(i)='non-miss';
+   end;
+
+   /* On the last observation of the data set, if a 'flag' value is still */
+   /* 'missing', the variable needs to be dropped.  Concatenate the       */
+   /* variable's name onto LIST to build the values of a DROP statement   */
+   /* to be executed in another step.                                     */
+   if finished then do;
+      do i= 1 to dim(num_vars);
+         if num_miss(i) = 'missing' then list=trim(list)||' '||trim(vname(num_vars(i)));
+      end;
+      do i= 1 to dim(char_vars);
+         if char_miss(i) = 'missing' then list=trim(list)||' '||trim(vname(char_vars(i)));
+      end;
+      call symput('mlist',list);
+   end;
+run;
+
+/* Use the macro variable MLIST in the DROP statement.*/;
+
+data Ebert;
+   set Ebert;
+   IDNew=_n_;
+   drop &mlist;
+run;
+*removing missing and all 0 variables finished!;
+
+
+data ebert; set ebert;
+TtlPrbTm = 43200 - TtlPrbTm; *invert, because it is too big, it is possible to use maxdur instead of 43200;
+run;
+proc transpose data=Ebert(drop=insectno transform maxdur)out=VarNames(keep=_name_ _label_);
+data BoxCoxTrans; set Ebert; IDNew=_n_; keep IDNew insectno trt;
+Proc sort data=work.BoxCoxTrans; by IDNew;
+run;
+Proc sort data=work.Ebert; by IDNew;
+run;
+
+*Following two lines control Transformation output supression;
+ods exclude all;
+ods graphics off;
+
+*Transform Everything!;
+Data Ebert; Set Ebert;
+      data _null_;				  
+        set VarNames;
+		call execute("
+					  title 'BoxCox of " || _LABEL_ || "';
+					  proc transreg  NOZEROCONSTANT data=Ebert nomiss;
+                      model boxcox("|| _NAME_ || "/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxOut;
+                      data BoxCoxOut; set BoxCoxOut; IDNew=_n_; run;
+                      Proc sort data=work.BoxCoxOut; by IDNew; run;
+					  data BoxCoxOut; set BoxCoxOut;
+					  if "|| _NAME_ || "='.' then T"|| _NAME_ || "='.';
+					  run;
+					  data BoxCoxOut; set BoxCoxOut; keep IDNew T" || _NAME_ || ";
+					  data BoxCoxTrans; set BoxCoxTrans; merge BoxCoxOut; by IDNew;
+					  run;"
+                    );
+        run;
+*delete leftovers;
+proc datasets lib=work nolist; delete BoxCoxOut _cntnts_;
+Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; drop IDNew; run; *drop it, and also revert TtlPrbTm back to normal so the means are correct;
+Data BoxCoxTrans; Set BoxCoxTrans; drop IDNew TIDNew; run;
+*Convert to Long format so GLIMMIX BY statement can be used;
+Proc sort data=work.BoxCoxTrans; by insectno;
+run;
+proc transpose data=BoxCoxTrans out=BoxCoxTransLong NAME = Parameter LABEL = ParameterLabel ;
+  by insectno trt;
+run;
+Proc sort data=BoxCoxTransLong; by Parameter;
+
+proc datasets lib = work nolist;
+ modify BoxCoxTransLong;
+ rename COL1=observations;
+run;
+
+Data BoxCoxTransLong; Set BoxCoxTransLong; drop IDNew TIDNew; run;
+
+*ANOVA and Tukey test procedure!;
+ods exclude none;
 ods graphics on;
-*******************************************************************;
-********      Probe Level Variables       *************************;
-*******************************************************************;
-Data Ebert; Set Ebert; cnstnt=1;
-********************************************************************
-***********************    cnstnt      *****************************
-******  There are two ways to look at the constant that is *********
-******    added to prevent log(0).                         *********
-******   1) Use 1 because log(1)=0                         *********
-******   2) There is some value below which we cannot      *********
-******          measure. Thus we add a small value that    *********
-******          we hope adjusts zeros to this non-zero but *********
-******          non-observable value.                      *********
-******    In this case 1 (second) may serve both options.  *********
-********************************************************************
-*******************************************************************;
-Data Ebert; Set Ebert;
-if transform=1 then do; numprbs=sqrt(numprbs); 				Mnprbs=log(mnprbs+cnstnt); 
-						sdprbs=log(sdprbs+cnstnt); 			mdnprbs=log(mdnprbs+cnstnt);
-                        DurFrstPrb=log(durfrstprb+cnstnt); 	durscndprb=log(durscndprb+cnstnt); 
-						ttlprbtm=log(ttlprbtm+cnstnt); 
-					end;
-Proc glimmix plots=residualpanel; class trt; model  NumPrbs=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPrbs';
-Proc glimmix plots=residualpanel; class trt; model  MnPrbs=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnPrbs';
-Proc glimmix plots=residualpanel; class trt; model  sdPrbs=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdPrbs';
-Proc glimmix plots=residualpanel; class trt; model  MdnPrbs=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MdnPrbs';
-Proc glimmix plots=residualpanel; class trt; model  DurFrstPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurFrstPrb';
-Proc glimmix plots=residualpanel; class trt; model  DurScndPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurScndPrb';
-Proc glimmix plots=residualpanel; class trt; model  TtlPrbTm=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlPrbTm';*duration of recording less duration of NP or Z;
+*ods trace on; *used for testing to figure out ODS table names;
+ods exclude ModelInfo (PERSIST) ClassLevels (PERSIST) Dimensions (PERSIST) OptInfo (PERSIST) IterHistory (PERSIST) ConvergenceStatus (PERSIST) Tests3 (PERSIST);
 
-*******************************************************************;
-********      Variables for NP            *************************;
-*******************************************************************;
-if transform=1 then do;
-					   	NumNP=sqrt(NumNP);									TtlDurNP=log(ttldurnp+cnstnt);
-  					 	MnDurNP=log(MnDurNP+cnstnt);						sdnp=log(sdnp+cnstnt);
-						TmFrstPrbFrmStrt=log(TmFrstPrbFrmStrt+cnstnt);		DurScndZ=log(DurScndZ+cnstnt);
-						DurNnprbBfrFrstE1=log(DurNnprbBfrFrstE1+cnstnt);	DurNpFllwFrstSusE2=log(DurNpFllwFrstSusE2+cnstnt);
-					end;
-Proc glimmix plots=residualpanel; class trt; model  NumNP=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumNP';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurNP=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurNP';
-Proc glimmix plots=residualpanel; class trt; model  MnDurNP=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurNP';
-Proc glimmix plots=residualpanel; class trt; model  sdNP=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdNP';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstPrbFrmStrt=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstPrbFrmStrt'; *Duration of first NP;
-Proc glimmix plots=residualpanel; class trt; model  DurScndZ=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurScndZ';                 *Duration of second NP;
-Proc glimmix plots=residualpanel; class trt; model  DurNnprbBfrFrstE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurNnprbBfrFrstE1';
-Proc glimmix plots=residualpanel; class trt; model  DurNpFllwFrstSusE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurNpFllwFrstSusE2';
-* NumNP TtlDurNP MnDurNP sdNP TmFrstPrbFrmStrt DurScndZ DurNnprbBfrFrstE1 DurNpFllwFrstSusE2;
+ods output DIFFS=ANOVA;
+ods output LSMLines=Groups;
+Proc glimmix data=BoxCoxTransLong plots=residualpanel; by Parameter; class trt; model observations=trt; random _residual_/group=trt; lsmeans trt/pdiff lines adjust=tukey alpha=0.005; title "ANOVA and Tukey test"; run;
+ods output close;
+*ods trace off;
 
-*******************************************************************;
-********      Variables for C or Pathway (=C+A+B+PD)  *************;
-*******************************************************************;
-if transform=1 then do;
-					   	NmbrC=sqrt(NmbrC);									TtlDurC=log(TtlDurC+cnstnt);
-  					 	MnDurC=log(MnDurC+cnstnt);							sdC=log(sdC+cnstnt);
-						NmbrShrtC=sqrt(NmbrShrtC);							ShrtCbfrE1=log(ShrtCbfrE1+cnstnt);
-						*PrcntPrbC = arsin(sqrt(PrcntPrbC/100));			PrcntPrbC=log((PrcntPrbC/100)/(1-(PrcntPrbC/100)));
-					end;
+*Save tukey grouping in a table and clean it up;
+Data Groups; set Groups;
+ IF Estimate <> "_";
+ drop EqLS1 EqLS2 EqLS3 EqLS4 Effect Method Estimate;
+ Letter=cats(of Line:);
+ drop of Line:;
+ run;
+
+
+*Calculate Means for all variables;
+Proc means data=ebert; 
+     by trt;
+     title "Untransformed means for all variables";
+	 output out=trtMeans;
+	 Run;
+
+*Transpose means for combining with Tukey Grouping;
+proc sql;
+ create table trtMeansLong (drop= _TYPE_ _FREQ_ Transform maxdur) as select *,  _STAT_ as column from trtMeans;
+quit;
+proc transpose data=trtMeansLong out=trtMeansLong; by trt; id column; idlabel column;
 run;
-Data Ebert; set ebert;
-Proc glimmix plots=residualpanel; class trt; model  NmbrC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrC';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurC';
-Proc glimmix plots=residualpanel; class trt; model  MnDurC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurC';
-Proc glimmix plots=residualpanel; class trt; model  sdC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdC';
-Proc glimmix plots=residualpanel; class trt; model  NmbrShrtC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrShrtC';
-Proc glimmix plots=residualpanel; class trt; model  ShrtCbfrE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of ShrtCbfrE1';
-Proc glimmix plots=residualpanel; class trt; model  PrcntPrbC=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntPrbC';
-* NmbrC TtlDurC MnDurC sdC NmbrShrtC ShrtCbfrE1 PrcntPrbC;
-*******************************************************************;
-********      Variables for pd                        *************;
-*******************************************************************;
-if transform=1 then do;
-						meanPD=log(meanPD+cnstnt);
-						meanPDL=log(meanpdl+cnstnt);						MeanPDS=log(meanPDS+cnstnt);
-						meanNPdPrb=sqrt(meanNPdPrb);						NmbrPD=sqrt(NmbrPD);
-						NmbrPDL=sqrt(nmbrPDL);								NmbrPDS=sqrt(NmbrPDS);
-						TtlDurPD=log(TtlDurPD+cnstnt);						TtlDurPDL=log(TtlDurPDL+cnstnt);
-						TtlDurPDS=log(TtlDurPDS+cnstnt);					NumPDS1=sqrt(NumPDS1);
-						NumPDS2=sqrt(NumPDS2);								NumPDS3=sqrt(NumPDS3);
-						NumPDS4=sqrt(NumPDS4);								NumPDS5=sqrt(NumPDS5);
-						NumPDS6=sqrt(NumPDS6);								MnDurPdS1=log(MnDurPdS1+cnstnt);
-						MnDurPdS2=log(MnDurPdS2+cnstnt);					MnDurPdS3=log(MnDurPdS3+cnstnt);
-						MnDurPdS4=log(MnDurPdS4+cnstnt);					MnDurPdS5=log(MnDurPdS5+cnstnt);
-						MnDurPdS6=log(MnDurPdS6+cnstnt);					TmFrstCFrstPD=log(TmFrstCFrstPD+cnstnt);
-						TmEndLstPDEndPrb=log(TmEndLstPDEndPrb+cnstnt);
-Proc glimmix; class trt; model  meanpd=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanpd';
-Proc glimmix; class trt; model  meanPDL=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanPDL';
-Proc glimmix; class trt; model  meanPDS=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanPDS';
-Proc glimmix; class trt; model  meanNPdPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanNPdPrb';
-Proc glimmix; class trt; model  NmbrPD=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrPD';
-Proc glimmix; class trt; model  NmbrPDL=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrPDL';
-Proc glimmix; class trt; model  NmbrPDS=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrPDS';
-Proc glimmix; class trt; model  TtlDurPD=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurPD';
-Proc glimmix; class trt; model  TtlDurPDL=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurPDL';
-Proc glimmix; class trt; model  TtlDurPDS=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurPDS';
-Proc glimmix; class trt; model  NumPDS1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS1';
-Proc glimmix; class trt; model  NumPDS2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS2';
-Proc glimmix; class trt; model  NumPDS3=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS3';
-Proc glimmix; class trt; model  NumPDS4=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS4';
-Proc glimmix; class trt; model  NumPDS5=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS5';
-Proc glimmix; class trt; model  NumPDS6=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPDS6';
-Proc glimmix; class trt; model  MnDurPdS1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS1';
-Proc glimmix; class trt; model  MnDurPdS2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS2';
-Proc glimmix; class trt; model  MnDurPdS3=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS3';
-Proc glimmix; class trt; model  MnDurPdS4=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS4';
-Proc glimmix; class trt; model  MnDurPdS5=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS5';
-Proc glimmix; class trt; model  MnDurPdS6=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurPdS6';
-Proc glimmix; class trt; model  TmFrstCFrstPD=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstCFrstPD';
-Proc glimmix; class trt; model  TmEndLstPDEndPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmEndLstPDEndPrb';
-* meanpd meanPDL meanPDS meanNPdPrb NmbrPD NmbrPDL NmbrPDS TtlDurPD TtlDurPDL TtlDurPDS NumPDS1 NumPDS2
- NumPDS3 NumPDS4 NumPDS5 NumPDS6 MnDurPdS1 MnDurPdS2 MnDurPdS3 MnDurPdS4 MnDurPdS5 MnDurPdS6 TmFrstCFrstPD 
- TmEndLstPDEndPrb;
-*******************************************************************;
-********      Variables for F                         *************;
-*******************************************************************;
-if transform=1 then do;
-						numf=sqrt(numf);									ttlduff=log(ttldurf+cnstnt);
-						meanf=log(meanf+cnstnt);							ttldurf1=log(ttldurf1+cnstnt);
-						ttldurf2=log(ttldurf2+cnstnt);						ttldurf3=log(ttldurf3+cnstnt);
-						ttldurf4=log(ttldurf4+cnstnt);						ttldurf5=log(ttldurf5+cnstnt);
-						ttldurf6=log(ttldurf6+cnstnt);						numf1=sqrt(numf1);
-						numf2=sqrt(numf2);									numf3=sqrt(numf3);
-						numf4=sqrt(numf4);									numf5=sqrt(numf5);
-						numf6=sqrt(numf6);
-						*PrcntPrbF = arsin(sqrt(PrcntPrbF/100));			PrcntPrbF=log((PrcntPrbF/100)/(1-(PrcntPrbF/100)));
-					end;
-Proc glimmix plots=residualpanel; class trt; model  NumF=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF';
-Proc glimmix plots=residualpanel; class trt; model  meanF=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanF';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF1';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF2';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF3=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF3';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF4=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF4';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF5=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF5';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurF6=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurF6';
-Proc glimmix plots=residualpanel; class trt; model  NumF1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF1';
-Proc glimmix plots=residualpanel; class trt; model  NumF2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF2';
-Proc glimmix plots=residualpanel; class trt; model  NumF3=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF3';
-Proc glimmix plots=residualpanel; class trt; model  NumF4=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF4';
-Proc glimmix plots=residualpanel; class trt; model  NumF5=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF5';
-Proc glimmix plots=residualpanel; class trt; model  NumF6=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumF6';
-Proc glimmix plots=residualpanel; class trt; model  PrcntPrbF=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntPrbF';
-* NumF TtlDurF meanF TtlDurF1 TtlDurF2 TtlDurF3 TtlDurF4 TtlDurF5 TtlDurF6 NumF1 NumF2 NumF3 NumF4 NumF5 NumF6 PrcntPrbF;
-
-*******************************************************************;
-********      Variables for G             *************************;
-*******************************************************************;
-if transform=1 then do;
-						NumG=sqrt(NumG);									DurG=log(DurG+cnstnt);
-						MeanG=log(MeanG+cnstnt);							sdG=log(sdG);
-						CtoFrstG=log(CtoFrstG+cnstnt);						DurNnprbBfrFrstG=log(DurNnprbBfrFrstG+cnstnt);
-						meanNGPrb=sqrt(meanNGPrb);							TmFrmFrstPrbFrstG=log(TmFrmFrstPrbFrstG+cnstnt);
-						TmBegPrbFrstG=log(TmBegPrbFrstG+cnstnt);			NumPrbsAftrFrstG=sqrt(NumPrbsAftrFrstG);
-						NmbrShrtPrbAftrFrstG=sqrt(NmbrShrtPrbAftrFrstG);	NumLngG=sqrt(NumLngG);
-						TmFrstSusGFrstPrb=log(TmFrstSusGFrstPrb+cnstnt);
-						*PrcntPrbG = arsin(sqrt(PrcntPrbG/100));			PrcntPrbG=log((PrcntPrbG/100)/(1-(PrcntPrbF/100)));
-					end;
-Proc glimmix plots=residualpanel; class trt; model  NumG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumG';
-Proc glimmix plots=residualpanel; class trt; model  DurG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurG';
-Proc glimmix plots=residualpanel; class trt; model  MeanG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MeanG';
-Proc glimmix plots=residualpanel; class trt; model  sdG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdG';
-Proc glimmix plots=residualpanel; class trt; model  CtoFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of CtoFrstG';
-Proc glimmix plots=residualpanel; class trt; model  DurNnprbBfrFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurNnprbBfrFrstG';
-Proc glimmix plots=residualpanel; class trt; model  meanNGPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of meanNGPrb';
-Proc glimmix plots=residualpanel; class trt; model  TmFrmFrstPrbFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrmFrstPrbFrstG';
-Proc glimmix plots=residualpanel; class trt; model  TmBegPrbFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmBegPrbFrstG';
-Proc glimmix plots=residualpanel; class trt; model  NumPrbsAftrFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPrbsAftrFrstG';
-Proc glimmix plots=residualpanel; class trt; model  NmbrShrtPrbAftrFrstG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrShrtPrbAftrFrstG';
-Proc glimmix plots=residualpanel; class trt; model  NumLngG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumLngG';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstSusGFrstPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstSusGFrstPrb';
-Proc glimmix plots=residualpanel; class trt; model  PrcntPrbG=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntPrbG';
-* NumG DurG MeanG sdG CtoFrstG DurNnprbBfrFrstG meanNGPrb TmFrmFrstPrbFrstG TmBegPrbFrstG NumPrbsAftrFrstG
- NmbrShrtPrbAftrFrstG NumLngG TmFrstSusGFrstPrb PrcntPrbG;
-
-*******************************************************************;
-********      Variables for E or E1       *************************;
-*******************************************************************;
-if transform=1 then do;
-						NumE1=sqrt(NumE1);										TtlDurE1=log(TtlDurE1+cnstnt);
-						MnDurE1=log(MnDurE1+cnstnt);							sdE1=log(sdE1);
-						CtoFrstE1=log(CtoFrstE1+cnstnt);						TmFrmFrstPrbFrstE=log(TmFrmFrstPrbFrstE+cnstnt);
-						TmBegPrbFrstE=log(TmBegPrbFrstE+cnstnt);				NumPrbsAftrFrstE=log(NumPrbsAftrFrstE+cnstnt);
-						NmbrShrtPrbAftrFrstE=log(NmbrShrtPrbAftrFrstE+cnstnt);	NumLngE1BfrE2=sqrt(NumLngE1BfrE2);
-						NumSnglE1=sqrt(NumSnglE1);								DurFirstE=log(DurFirstE+cnstnt);
-						*CntrbE1toE=log((CntrbE1toE/100)/(1-(CntrbE1toE/100)));	CntrbE1toE = arsin(sqrt(CntrbE1toE/100));
-						DurE1FlwdFrstSusE2=log(DurE1FlwdFrstSusE2+cnstnt);
-						DurE1FlldFrstE2=log(DurE1FlldFrstE2+cnstnt);			TtlDurE1FlldSusE2=log(TtlDurE1FlldSusE2+cnstnt);
-						TtlDurE1FlldE2=log(TtlDurE1FlldE2+cnstnt);				TtlDurSnglE1=log(TtlDurSnglE1+cnstnt);
-						*PrcntPrbE1 = arsin(sqrt(PrcntPrbE1/100));				PrcntPrbE1=log((PrcntPrbE1/100)/(1-(PrcntPrbE1/100)));
-					end;
-
-Proc glimmix plots=residualpanel; class trt; model  NumE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumE1';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE1';
-Proc glimmix plots=residualpanel; class trt; model  MnDurE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurE1';
-Proc glimmix plots=residualpanel; class trt; model  sdE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdE1';
-Proc glimmix plots=residualpanel; class trt; model  CtoFrstE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of CtoFrstE1';
-Proc glimmix plots=residualpanel; class trt; model  TmFrmFrstPrbFrstE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrmFrstPrbFrstE';
-Proc glimmix plots=residualpanel; class trt; model  TmBegPrbFrstE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmBegPrbFrstE';
-Proc glimmix plots=residualpanel; class trt; model  NumPrbsAftrFrstE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumPrbsAftrFrstE';
-Proc glimmix plots=residualpanel; class trt; model  NmbrShrtPrbAftrFrstE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NmbrShrtPrbAftrFrstE';
-Proc glimmix plots=residualpanel; class trt; model  NumLngE1BfrE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumLngE1BfrE2';
-Proc glimmix plots=residualpanel; class trt; model  NumSnglE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumSnglE1';
-Proc glimmix plots=residualpanel; class trt; model  DurFirstE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurFirstE';
-Proc glimmix plots=residualpanel; class trt; model  CntrbE1toE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of CntrbE1toE';
-Proc glimmix plots=residualpanel; class trt; model  DurE1FlwdFrstSusE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurE1FlwdFrstSusE2';
-Proc glimmix plots=residualpanel; class trt; model  DurE1FlldFrstE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of DurE1FlldFrstE2';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE1FlldSusE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE1FlldSusE2';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE1FlldE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE1FlldE2';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurSnglE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurSnglE1';
-Proc glimmix plots=residualpanel; class trt; model  PrcntPrbE1=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntPrbE1';
-
-
-*******************************************************************;
-********      Variables for E2            *************************;
-*******************************************************************;
-if transform=1 then do;
-						NumE2=sqrt(NumE2);										NumLngE2=sqrt(NumLngE2);
-						TtlDurE2=log(TtlDurE2+cnstnt);							MnDurE2=log(MnDurE2+cnstnt);
-						sdE2=log(sdE2);											TmFrstSusE2FrstPrb=log(TmFrstSusE2FrstPrb+cnstnt);
-						TmFrstSusE2StrtPrb=log(TmFrstSusE2StrtPrb+cnstnt);		TmFrstE2FrmFrstPrb=log(TmFrstE2FrmFrstPrb+cnstnt);
-						TmFrstE2FrmPrbStrt=log(TmFrstE2FrmPrbStrt+cnstnt);		MaxE2=log(maxE2);
-						*PrcntPrbE2 = arsin(sqrt(PrcntPrbe2/100));				PrcntPrbE1=log((PrcntPrbG/100)/(1-(PrcntPrbF/100)));
-						PrcntE2SusE2=arsin(sqrt(PrcntE2SusE2/100));
-					end;
-
-Proc glimmix plots=residualpanel; class trt; model  NumE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumE2';
-Proc glimmix plots=residualpanel; class trt; model  NumLngE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of NumLngE2';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE2';
-Proc glimmix plots=residualpanel; class trt; model  MnDurE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of MnDurE2';
-Proc glimmix plots=residualpanel; class trt; model  sdE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of sdE2';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstSusE2FrstPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstSusE2FrstPrb';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstSusE2StrtPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstSusE2StrtPrb';
-*Proc glimmix; *class trt; *model  TmFrstE2StrtEPG=trt; *lsmeans trt/pdiff lines adjust=tukey; *title 'ANOVA & LSD of TmFrstE2StrtEPG';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstE2FrmFrstPrb=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstE2FrmFrstPrb';
-Proc glimmix plots=residualpanel; class trt; model  TmFrstE2FrmPrbStrt=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstE2FrmPrbStrt';
-Proc glimmix plots=residualpanel; class trt; model  TmLstE2EndRcrd=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmLstE2EndRcrd';
-Proc glimmix plots=residualpanel; class trt; model  maxE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of maxE2';
-Proc glimmix plots=residualpanel; class trt; model  PrcntPrbE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntPrbE2';
-Proc glimmix plots=residualpanel; class trt; model  PrcntE2SusE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PrcntE2SusE2';
-
-*******************************************************************;
-********      Variables for E1+E2         *************************;
-*******************************************************************;
-if transform=1 then do;
-						PotE2Indx = arsin(sqrt(PotE2Indx/100));					TtlDurE=log(ttldure+cnstnt);
-						TtlDurE1FllwdE2PlsE2=log(TtlDurE1FllwdE2PlsE2+cnstnt);	TotDurNnPhlPhs=log(TotDurNnPhlPhs+cnstnt);
-						TmFrstSusE2=log(TmFrstSusE2+cnstnt);
-					end;
-Proc glimmix plots=residualpanel; class trt; model  PotE2Indx=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of PotE2Indx';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE';
-Proc glimmix plots=residualpanel; class trt; model  TtlDurE1FllwdE2PlsE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TtlDurE1FllwdE2PlsE2';
-Proc glimmix plots=residualpanel; class trt; model  TotDurNnPhlPhs=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TotDurNnPhlPhs';*Duration of recording less E1 and E2;
-Proc glimmix plots=residualpanel; class trt; model  TmFrstSusE2=trt; lsmeans trt/pdiff lines adjust=tukey; title 'ANOVA & LSD of TmFrstSusE2';
-
-/*
-Data Ebert; Set Ebert;
-proc discrim crosslisterr crossvalidate distance method=normal;
-class trt;
-var CtoFrstE1 TtlPrbTm  ;
-*NumPrbs MnPrbs  DurFrstPrb DurScndPrb  NumNP  MnDurNP  
- DurScndZ NmbrC  MnDurC  NmbrShrtC 
- meanpd  meanNPdPrb NmbrPD    TmFrstCFrstPD 
- NumE1  MnDurE1  TmFrmFrstPrbFrstE TmBegPrbFrstE NumPrbsAftrFrstE NmbrShrtPrbAftrFrstE NumLngE1BfrE2 
-NumSnglE1 DurFirstE CntrbE1toE NumE2 NumLngE2 PrcntPrbE2 TtlDurE TotDurNnPhlPhs ;
-
-
-Data Ebert; Set Ebert;
-proc stepdisc method=stepwise sle=.1 sls=.06 ;
-class trt;
-var CtoFrstE1 
-NumPrbs MnPrbs DurFrstPrb DurScndPrb TtlPrbTm NumNP  MnDurNP NmbrC  MnDurC  NmbrShrtC 
- meanpd  meanNPdPrb NmbrPD    TmFrstCFrstPD 
-  PrcntPrbF  
-NumE1  MnDurE1  TmFrmFrstPrbFrstE TmBegPrbFrstE NumPrbsAftrFrstE NmbrShrtPrbAftrFrstE NumLngE1BfrE2 
-NumSnglE1 DurFirstE CntrbE1toE NumE2 NumLngE2 PrcntPrbE2 TtlDurE TotDurNnPhlPhs ;
-*/;
-
-*The following line can be used to export the equivalent of the Ebert worksheet output into a text file. 
-*Read text file using Excel, as delimited file with commas.;
-*proc export data=Ebert outfile='C:\Users\tebert\Desktop\EBERT 1 0 1\Ebert1.txt' dbms=csv replace;
-
+data trtMeansLong;
+   set trtMeansLong;
+   length Parameter $32;
+   Parameter=cats('T',_NAME_); *T is added to make the parameter names the same as in Groups;
+   drop _name_;
 run;
+
+*Merge the two datasets;
+Proc sort data=work.trtMeansLong; by Parameter trt;
+Proc sort data=work.Groups; by Parameter trt;
+Data Final; Set trtMeansLong Groups; 
+merge trtMeansLong Groups; by Parameter trt;
+run;
+
+*Make easy to read names of the parameters in the ANOVA table!;
+Data ANOVA; Set ANOVA;
+
+PROC FORMAT; *create labels;
+	VALUE  $Parameter
+		"TTmFrstPrbFrmStrt" = "Time from beginning of EPG to first probe"
+		"TCtoFrstE1" = "Number of probes to first E1"
+		"TNumF" = "Number of F"
+		"TDurFrstPrb" = "Duration of First Probe"
+		"TDurScndPrb" = "Duration of Second Probe"
+		"TShrtCbfrE1" = "Duration of shortest C before first E1 in any probe"
+		"TDurScndZ" = "Duration of second non-probe event (z or np)"
+		"TTtlDurF" = "Total duration of F"
+		"TDurNnprbBfrFrstE1" = "Duration of nonprobe period before first E1"
+		"Tmeanpd" = "Mean duration of pd"
+		"TmeanPDL" = "Mean duration of pdL"
+		"TmeanPDS" = "Mean duration of pdS"
+		"TmeanNPdPrb" = "Mean number of pd per probe"
+		"TmeanF" = "Mean duration of F"
+		"TTmStrtEPGFrstE" = "Time from start of EPG to 1st E"
+		"TTmFrmFrstPrbFrstE" = "Time from first probe to 1st E"
+		"TTmBegPrbFrstE" = "Time from start of probe with first E to 1st E"
+		"TNumG" = "Number of G waveforms"
+		"TDurG" = "Time spent in G waveform"
+		"TMeanG" = "Mean duration of each G waveform event"
+		"TNumLngG" = "Number of sustained G"
+		"TTmFrstSusGFrstPrb" = "Time to first sustained G from first probe"
+		"TNumPrbsAftrFrstE" = "Number of Probes after first E1"
+		"TNmbrShrtPrbAftrFrstE" = "Number of Probes<3min after first E1"
+		"TNumE1" = "Number of E1"
+		"TNumLngE1BfrE2" = "Number of E1 (longer than 10 min) followed by E2"
+		"TNumSnglE1" = "Number of single E1"
+		"TNumE2" = "Number of E2"
+		"TNumLngE2" = "Number of sustained E2"
+		"TDurFirstE" = "Duration of first E (E1 + E2)"
+		"TCntrbE1toE" = "Contribution of E1 to phloem phase"
+		"TDurE1FlwdFrstSusE2" = "Duration of E1 followed by first sustained E2 (Long E2)"
+		"TDurE1FlldFrstE2" = "Duration of E1 followed by sustained E2"
+		"TPotE2Indx" = "Potential E2 Index"
+		"TTtlDurE" = "Total duration of E"
+		"TTtlDurE1" = "Total duration of E1"
+		"TTtlDurE1FlldSusE2" = "Total Duration of E1 followed by a sustained E2"
+		"TTtlDurE1FlldE2" = "Total duration of E1 followed by E2"
+		"TTtlDurSnglE1" = "Total duration of single E1"
+		"TTtlDurE1FllwdE2PlsE2" = "Total duration of E1 followed by E2 plus E2"
+		"TTtlDurE2" = "Total Duration of E2"
+		"TMnDurE1" = "Mean Duration of E1"
+		"TMnDurE2" = "Mean duration of E2"
+		"TNumPrbs" = "Number of probes"
+		"TNmbrC" = "Number of C events"
+		"TNmbrShrtC" = "Number of short C events"
+		"TNumNP" = "Number of NP"
+		"TNmbrPD" = "Number of pd"
+		"TNmbrPDL" = "Number of pdL"
+		"TNmbrPDS" = "Number of pdS"
+		"TNmbrE1e" = "Number of E1e"
+		"TTtlDurC" = "Total duration of C"
+		"TTtlDurE1e" = "Total duration of E1e"
+		"TTotDurNnPhlPhs" = "Total duration of non-phloematic phase"
+		"TTtlDurNP" = "Total duration of NP phase"
+		"TTtlDurPD" = "Total duration of PD phase"
+		"TTtlDurPDL" = "Total duration of PDL phase"
+		"TTtlDurPDS" = "Total duration of PDS phase"
+		"TTtlPrbTm" = "Total probing time"
+		"TMnDurNP" = "Mean duration of NP"
+		"TMnDurC" = "Mean duration of C"
+		"TTmFrstSusE2" = "Time to first sustained E2"
+		"TTmFrstSusE2FrstPrb" = "Time to first sustained E2 from first probe"
+		"TTmFrstSusE2StrtPrb" = "Time to first sustained E2 from start of probe"
+		"TTmFrstE2StrtEPG" = "Time to first E2 from start of EPG"
+		"TTmFrstE2FrmFrstPrb" = "Time to first E2 from first probe"
+		"TTmFrstE2FrmPrbStrt" = "Time to first E2 from start of probe"
+		"TTtlDurNp1" = "Duration of NP in hour 1"
+		"TTtlDurNp2" = "Duration of NP in hour 2"
+		"TTtlDurNp3" = "Duration of NP in hour 3"
+		"TTtlDurNp4" = "Duration of NP in hour 4"
+		"TTtlDurNp5" = "Duration of NP in hour 5"
+		"TTtlDurNp6" = "Duration of NP in hour 6"
+		"TTtlDurNp7" = "Duration of NP in hour 7"
+		"TTtlDurNp8" = "Duration of NP in hour 8"
+		"TTtlDurNp9" = "Duration of NP in hour 9"
+		"TTtlDurNp10" = "Duration of NP in hour 10"
+		"TTtlDurNp11" = "Duration of NP in hour 11"
+		"TTtlDurNp12" = "Duration of NP in hour 12"
+		"TNumPDS1" = "Number of PDS in hour 1"
+		"TNumPDS2" = "Number of PDS in hour 2"
+		"TNumPDS3" = "Number of PDS in hour 3"
+		"TNumPDS4" = "Number of PDS in hour 4"
+		"TNumPDS5" = "Number of PDS in hour 5"
+		"TNumPDS6" = "Number of PDS in hour 6"
+		"TNumPDS7" = "Number of PDS in hour 7"
+		"TNumPDS8" = "Number of PDS in hour 8"
+		"TNumPDS9" = "Number of PDS in hour 9"
+		"TNumPDS10" = "Number of PDS in hour 10"
+		"TNumPDS11" = "Number of PDS in hour 11"
+		"TNumPDS12" = "Number of PDS in hour 12"
+		"TMnDurPdS1" = "Mean Duration of PDS in hour 1"
+		"TMnDurPdS2" = "Mean Duration of PDS in hour 2"
+		"TMnDurPdS3" = "Mean Duration of PDS in hour 3"
+		"TMnDurPdS4" = "Mean Duration of PDS in hour 4"
+		"TMnDurPdS5" = "Mean Duration of PDS in hour 5"
+		"TMnDurPdS6" = "Mean Duration of PDS in hour 6"
+		"TMnDurPdS7" = "Mean Duration of PDS in hour 7"
+		"TMnDurPdS8" = "Mean Duration of PDS in hour 8"
+		"TMnDurPdS9" = "Mean Duration of PDS in hour 9"
+		"TMnDurPdS10" = "Mean Duration of PDS in hour 10"
+		"TMnDurPdS11" = "Mean Duration of PDS in hour 11"
+		"TMnDurPdS12" = "Mean Duration of PDS in hour 12"
+		"TNumF1" = "Number of F in hour 1"
+		"TNumF2" = "Number of F in hour 2"
+		"TNumF3" = "Number of F in hour 3"
+		"TNumF4" = "Number of F in hour 4"
+		"TNumF5" = "Number of F in hour 5"
+		"TNumF6" = "Number of F in hour 6"
+		"TNumF7" = "Number of F in hour 7"
+		"TNumF8" = "Number of F in hour 8"
+		"TNumF9" = "Number of F in hour 9"
+		"TNumF10" = "Number of F in hour 10"
+		"TNumF11" = "Number of F in hour 11"
+		"TNumF12" = "Number of F in hour 12"
+		"TTtlDurF1" = "Duration of F in hour 1"
+		"TTtlDurF2" = "Duration of F in hour 2"
+		"TTtlDurF3" = "Duration of F in hour 3"
+		"TTtlDurF4" = "Duration of F in hour 4"
+		"TTtlDurF5" = "Duration of F in hour 5"
+		"TTtlDurF6" = "Duration of F in hour 6"
+		"TTtlDurF7" = "Duration of F in hour 7"
+		"TTtlDurF8" = "Duration of F in hour 8"
+		"TTtlDurF9" = "Duration of F in hour 9"
+		"TTtlDurF10" = "Duration of F in hour 10"
+		"TTtlDurF11" = "Duration of F in hour 11"
+		"TTtlDurF12" = "Duration of F in hour 12"
+		"TNumPrb1" = "Number of probes in hour 1"
+		"TNumPrb2" = "Number of probes in hour 2"
+		"TNumPrb3" = "Number of probes in hour 3"
+		"TNumPrb4" = "Number of probes in hour 4"
+		"TNumPrb5" = "Number of probes in hour 5"
+		"TNumPrb6" = "Number of probes in hour 6"
+		"TNumPrb7" = "Number of probes in hour 7"
+		"TNumPrb8" = "Number of probes in hour 8"
+		"TNumPrb9" = "Number of probes in hour 9"
+		"TNumPrb10" = "Number of probes in hour 10"
+		"TNumPrb11" = "Number of probes in hour 11"
+		"TNumPrb12" = "Number of probes in hour 12"
+		"TTmFrstCFrstPD" = "Time to first pd from beginning of first probe"
+		"TTmEndLstPDEndPrb" = "Time from end of last pd in probe to end of first probe"
+		"TSumPDII1" = "Duration of PD subphase I"
+		"TSumPDII2" = "Duration of PD subphase II"
+		"TSumPDII3" = "Duration of PD subphase III"
+		"TTmEndPDBegE1FwdSusE2" = "Time from end of last pd to beginning of E1 followed by sustained E2"
+		"TTmLstPdEndRcrd" = "Time from end of last pd to end of EPG"
+		"TTmLstE1EndRcrd" = "Time from Last E1 to end of EPG record"
+		"TTmLstE2EndRcrd" = "Time from Last E2 to end of EPG record"
+		"TmaxE2" = "Duration of longest E2"
+		"TDurNpFllwFrstSusE2" = "Duration of NP following first sustained E2"
+		"TPrcntPrbC" = "Percent probing spent in C"
+		"TPrcntPrbE1" = "Percent probing spent in E1"
+		"TPrcntPrbE2" = "Percent probing spent in E2"
+		"TPrcntPrbF" = "Percent probing spent in F"
+		"TPrcntPrbG" = "Percent probing spent in G"
+		"TPrcntE2SusE2" = "Percent E2 spent in Sustained E2"
+		"TCtoFrstG" = "Number of probes to first G"
+		"TDurNnprbBfrFrstG" = "Duration of nonprobe period before first G"
+		"TmeanNGPrb" = "Mean number of G per probe"
+		"TTmFrmFrstPrbFrstG" = "Time from first probe to 1st G"
+		"TTmBegPrbFrstG" = "Time from start of probe with first G to 1st G"
+		"TNumPrbsAftrFrstG" = "Number of Probes after first G"
+		"TNmbrShrtPrbAftrFrstG" = "Number of Probes<3min after first G"
+		"TsdC" = "Mean Deviation of C"
+		"TsdF" = "Mean Deviation of F"
+		"TsdG" = "Mean Deviation of G"
+		"TsdE1" = "Mean Deviation of E1"
+		"TsdE2" = "Mean Deviation of E2"
+		"TsdNP" = "Mean Deviation of NP"
+		"TMnPrbs" = "Mean duration of probes"
+		"TsdPrbs" = "Mean Deviation of Probes"
+		"TMdnPrbs" = "Median duration of probes";
+RUN;
+Data ANOVA; Set ANOVA;
+FORMAT  Parameter $Parameter.; *apply created labels;
+run;
+
+*delete unncecessary datasets;
+proc datasets lib=work nolist; delete BoxCoxTransLong trtMeans;
+
+*export supernice table that combines means and ANOVA in one CSV file;
+proc export data=Final outfile="&OutPath.&InFile.-Output-ANOVAMeans.csv" dbms=csv replace;
  ods results;
  ods html close;
 run;
