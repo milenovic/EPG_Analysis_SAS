@@ -1,3 +1,8 @@
+*This program takes all .ANA files from a directory, converts time to duration,
+assigns treatment letter code (prefix), and combines them all in one .CSV file.
+Additionally, it creates FileList file containing information about which
+specific insect corresponds to which number and prefix.;
+
 Data one;
 %let path = C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Tomato\Annotations\Tomato\; *Path to the working folder with annotation files, no quotes!;
 %let prefix = f; *Single letter treatment name a-z;
