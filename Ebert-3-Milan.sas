@@ -45,11 +45,11 @@
 
 *********************************************************************
 *********************************************************************;
-
+options threads cpucount=8;
 options ls=100 ps=72;
 %let InPath = C:\Users\milan\Desktop\IITA Work\EPG Data\; *Folder with input file. WITH \ at the end please! Put the folder name only;
 %let InFile = CsvSwpTom-CST-SPT; *Input file name, Without extension please!;
-%let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\ComboOut\; *Folder to put the results, WITH \ at the end please!;
+%let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\testout\; *Folder to put the results, WITH \ at the end please!;
 x "cd ""&OutPath.""";
 Data one(keep=insectno waveform dur);
 	infile "&InPath.&InFile..csv" dsd missover firstobs=2 delimiter=',' end=last;
@@ -5109,8 +5109,10 @@ ods output close;
 
 *Save tukey grouping in a table and clean it up;
 Data Groups; set Groups;
- IF Estimate <> "_";
- drop EqLS1 EqLS2 EqLS3 EqLS4 Effect Method Estimate;
+ IF Estimate ne ._ then output;
+ run;
+Data Groups; set Groups;
+ drop EqLS1 EqLS2 EqLS3 EqLS4 EqLS5 EqLS6 EqLS7 Effect Method Estimate;
  Letter=cats(of Line:);
  drop of Line:;
  run;
