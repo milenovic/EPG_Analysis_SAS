@@ -45,11 +45,10 @@
 
 *********************************************************************
 *********************************************************************;
-options threads cpucount=8;
 options ls=100 ps=72;
-%let InPath = C:\Users\milan\Desktop\IITA Work\EPG Data\; *Folder with input file. WITH \ at the end please! Put the folder name only;
-%let InFile = CsvSwpTom-CST-SPT; *Input file name, Without extension please!;
-%let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\testout\; *Folder to put the results, WITH \ at the end please!;
+%let InPath = C:\Users\milan\Desktop\IITA Work\EPG Data\; *Folder with input file. WITH \ at the end please;
+%let InFile = CsvSwpTom-CST-SPT; *Input file name, Without extension please (it is assumed to be .csv);
+%let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\testout\; *Folder to put the results, WITH \ at the end please;
 x "cd ""&OutPath.""";
 Data one(keep=insectno waveform dur);
 	infile "&InPath.&InFile..csv" dsd missover firstobs=2 delimiter=',' end=last;
@@ -78,13 +77,8 @@ data one; set one;
     *insectno=compress(trt||insectno);
 	Transform=1; *Transform=0 will disable all transformations*;
     proc sort; by insectno;
-
 *ODS noresults; *suppresses output to "results" and "output" windows.;
-* Output statement for basic testing and program development. It is replaced when program is used for Data analyses.;
-*ODS HTML file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\testout\CsvSwp-output.html'; *Directs all output to this file.;
 ODS HTML file="&OutPath.&InFile.-Output.html";
-*ODS EXCEL file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\Outputs\CsvSwp-output.xlsx';
-*Ods csvall file='C:\Users\milan\Desktop\IITA Work\EPG Data\Cassava-Sweet Potato 05_13-07\Annotations\Outputs\CsvSwp-output.csv';
 
 Data one; set one;
       line=_n_;
@@ -357,10 +351,11 @@ run;
 
 
 *********************************************************************
-*******  milan delete              Start New Method               ***
+*******                            Start New Method               ***
 *******                        define the dataset OnlyD           ***
 *********************************************************************;
-/* 
+*Milan: Commented out. What is the waveform D?;
+/*
 Data three; set one; Proc sort; by insectno line;
 Data three; set three;
 	retain in0 marker1;
@@ -384,10 +379,11 @@ Data three; set three; Proc sort; by insectno line;
 data three; set three; drop marker1 marker2 in0;
 Data OnlyD; Set three;
 run;
-*/;
+
 *********************************************************************
 *  Finished creating dataset OnlyD
-* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
+*******************************  END  ******************************;
+*/;
 
 *********************************************************************
 *******                             Start New Method              ***
@@ -484,8 +480,10 @@ run;
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
 
 *********************************************************************
-*******                             Start New Method              ***
-*******                        define the dataset OnlySusG       ***
+***                                 Start New Method              ***
+***                            define the dataset OnlySusG        ***
+*** Milan: Added this since the variable was mentioned later      ***
+*** in the code, but never actually calculated.                   ***
 *********************************************************************;
 Data three; set one; Proc sort; by insectno line;
 Data three; set three;
@@ -956,7 +954,7 @@ Data three; set one; if compress(upcase(waveform))='PD' then PDS=dur;
 Data three; set three; proc means noprint; by insectno; var PDS; output out=outsas mean=meanPDS;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-data Ebert; set Ebert; if meanPDS='.' and meanpd ne '.' then meanPDS=meanpd; 
+data Ebert; set Ebert; if meanPDS='.' and meanpd ne '.' then meanpds=meanpd;
 proc datasets nolist nodetails; delete outsas three;
 *********************************************************************
 *  Finding Mean duration of pds is finished.
@@ -2352,7 +2350,7 @@ proc datasets nodetails nolist; delete three four outsas;
 
 *********************************************************************
 *********************************   Start New Method    *************
-***********      Duration of NP by hour milan mod to 12h
+***********      Duration of NP by hour
 *********************************************************************;
 Data three; set one;
 if compress(upcase(waveform))="NP" then output;
@@ -2890,7 +2888,6 @@ if MnDurPDS9="." then MnDurPDS9=0;
 if MnDurPDS10="." then MnDurPDS10=0;
 if MnDurPDS11="." then MnDurPDS11=0;
 if MnDurPDS12="." then MnDurPDS12=0;
-*horrible mistake corrected by commenting this!!!
 run*/;
 
 *********************************************************************
@@ -3655,7 +3652,8 @@ proc datasets nolist nodetails; delete three outsas;
 
 *********************************************************************
 *********************************   Start New Method    *************
-****     From start of last E1 to end of EPG record milan added
+****     From start of last E1 to end of EPG recording
+****Milan: added since the variable was mention but never calculated*
 *********************************************************************;
 data three; set onlyE1;
 data three; set three; proc sort; by inverter1;
@@ -3784,7 +3782,7 @@ data three; set three;
 data three; set three; if marker1=0 then output;
 /*data three; set three; 
 	if sumend=RecDur then DurTrmNpFllwFrstSusE2=.; else DurTrmNpFllwFrstSusE2='.'; *NOTE: This variable is set to missing in all cases;
-*milan deleted;
+*milan: commented out. Why is it missing in all cases?;
 */;
 data three; set three; drop dur line sumstart RecDur sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
@@ -3983,6 +3981,10 @@ Run;
 **********************************************************************;
 
 Data Ebert; Set Ebert; Drop waveform;
+/*
+Milan: Moved up.
+Data Ebert; Set Ebert; trt=substr(insectno,1,1);*recover treatment designations*;
+*/;
 Data Ebert; Set Ebert;
 If NmbrShrtC="." then NmbrShrtC="0";
 if MnDurPDS1="." then MnDurPDS1=0;
@@ -4231,7 +4233,8 @@ data three; set three;
 	else marker1=1;
 Data three; set three; if marker1=0 then output;
 Data three; set three; CtoFrstG=marker4;
-Data three; Set three; drop waveform dur line sumstart sumend instance inverter1 w1 in0 marker4 marker1; * dur0;
+*milan: check;
+Data three; Set three; drop waveform dur line sumstart sumend instance inverter1 w1 in0 marker4 marker1 dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 run;
 ******************************************************************
@@ -4273,7 +4276,8 @@ Data three; set three;
 	end;
 	else marker1=0;
 Data three; set three; if marker1=1 then output;
-Data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
+*Milan:check;
+Data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 ******************************************************************
 *  Finding Duration of nonprobe period before the first G is finished.
@@ -4373,7 +4377,7 @@ data three; set three;
 	else marker1=1;
 data three; set three; proc sort; by line;
 data three; set three; if marker1=0 then output;
-data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
+data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 ******************************************************************
 *  Finding Time from 1st probe to 1st G is finished.
@@ -4426,7 +4430,7 @@ data three; set three;
 	end;
 	else marker1=1;
 data three; set three; if marker1=0 then output;
-data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;* dur0;
+data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1 dur0;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
 
 ******************************************************************
@@ -4663,12 +4667,6 @@ Proc datasets nolist nodetails; delete three OnlyPrbsC Prbsout;
 *  Finding Mean deviation of Probes is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
 *********************************************************************;
-
-
-
-
-
-
 
 *********************************************************************
 *********************************************************************
@@ -4932,6 +4930,8 @@ Run;
 **              using standard deviations and medians as used by Freddy Tjallingii's group.   **
 **                                                                                            **
 ************************************************************************************************;
+
+*Milan: TODO: Check if all calculated variables are listed here:;
 Data Ebert; Set Ebert; 
     Proc means data=ebert; 
      by trt;
@@ -4976,13 +4976,16 @@ Data Ebert; Set Ebert;
      by trt;
      var PotE2Indx TtlDurE TtlDurE1FllwdE2PlsE2 TotDurNnPhlPhs TmFrstSusE2;
      title "Untransformed Means for E1+E2 variables";
+run;
+*Procedure for removing missing and all 0 variables;
+*This is very hepful for transformation and PROC GLIMMIX later on.;
+*Adapted from: https://support.sas.com/kb/24/622.html;
 
-*removing missing and all 0 variables;
-options symbolgen;
 /* Create two macro variables, NUM_QTY and CHAR_QTY, to hold */
 /* the number of numeric and character variables, respectively. */
 /* These will be used to define the number of elements in the arrays */
 /* in the next DATA step. */
+options symbolgen; *useful for debugging macros, it prints how macro variables resolve.;
 data _null_;
    set Ebert (obs=1);
    array num_vars[*] _NUMERIC_;
@@ -5010,7 +5013,7 @@ data _null_;
    /* Ensure that its length is sufficient. */
    length list $ 250; 
   
-   /* Check for non-missing values.  Reassign the corresponding 'flag' */
+   /* Check for non-missing and 0 values.  Reassign the corresponding 'flag' */
    /* value accordingly.                                               */
    do i=1 to dim(num_vars);
       if num_vars(i) ne . and num_vars(i) ne 0 then num_miss(i)='non-miss';
@@ -5034,8 +5037,7 @@ data _null_;
    end;
 run;
 
-/* Use the macro variable MLIST in the DROP statement.*/;
-
+*Use the macro variable MLIST in the DROP statement to drop missing and all 0 variables.;
 data Ebert;
    set Ebert;
    IDNew=_n_;
@@ -5043,22 +5045,30 @@ data Ebert;
 run;
 *removing missing and all 0 variables finished!;
 
-
+*invert variables that were too big.;
+*This may not be neccessary in all cases;
+*Note: it is possible to use maxdur instead of 43200;
 data ebert; set ebert;
-TtlPrbTm = 43200 - TtlPrbTm; *invert, because it is too big, it is possible to use maxdur instead of 43200;
+TtlPrbTm = 43200 - TtlPrbTm; 
 run;
+
+*Create dataset with variable names to be used for automation in Call Execute;
 proc transpose data=Ebert(drop=insectno transform maxdur)out=VarNames(keep=_name_ _label_);
+
+*Create dataset BoxCoxTrans that will hold transformed values, add ID, insectno and trt;
 data BoxCoxTrans; set Ebert; IDNew=_n_; keep IDNew insectno trt;
 Proc sort data=work.BoxCoxTrans; by IDNew;
 run;
 Proc sort data=work.Ebert; by IDNew;
 run;
 
-*Following two lines control Transformation output supression;
+*Following two lines control BoxCox transformation output;
 ods exclude all;
 ods graphics off;
 
-*Transform Everything!;
+*Transform Every variable present in Ebert table using BoxCox transformation!;
+*Collect all output in BoxCoxTrans table;
+*Pay attention to sorting for correct merge;
 Data Ebert; Set Ebert;
       data _null_;				  
         set VarNames;
@@ -5075,19 +5085,23 @@ Data Ebert; Set Ebert;
 					  data BoxCoxTrans; set BoxCoxTrans; merge BoxCoxOut; by IDNew;
 					  run;"
                     );
-        run;
-*delete leftovers;
+run;
+
+*Cleanup;
 proc datasets lib=work nolist; delete BoxCoxOut _cntnts_;
-Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; drop IDNew; run; *drop it, and also revert TtlPrbTm back to normal so the means are correct;
+Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; drop IDNew; run; *drop IDNew, and also revert TtlPrbTm back to normal so the means are correct;
 Data BoxCoxTrans; Set BoxCoxTrans; drop IDNew TIDNew; run;
-*Convert to Long format so GLIMMIX BY statement can be used;
+
+*Convert transformed data to Long format so GLIMMIX BY statement can be used;
 Proc sort data=work.BoxCoxTrans; by insectno;
 run;
 proc transpose data=BoxCoxTrans out=BoxCoxTransLong NAME = Parameter LABEL = ParameterLabel ;
   by insectno trt;
 run;
+*Data must be sorted accoring to the variable specified in BY statement;
 Proc sort data=BoxCoxTransLong; by Parameter;
 
+*rename. Primaraly so the residual grap title is at least a little less meaningless.;
 proc datasets lib = work nolist;
  modify BoxCoxTransLong;
  rename COL1=observations;
@@ -5095,12 +5109,15 @@ run;
 
 Data BoxCoxTransLong; Set BoxCoxTransLong; drop IDNew TIDNew; run;
 
-*ANOVA and Tukey test procedure!;
+*ANOVA with Tukey test procedure!;
 ods exclude none;
 ods graphics on;
-*ods trace on; *used for testing to figure out ODS table names;
+*ods trace on; *used for testing to figure out ODS table names (see next line);
+
+*Supress unwanted tables from the output;
 ods exclude ModelInfo (PERSIST) ClassLevels (PERSIST) Dimensions (PERSIST) OptInfo (PERSIST) IterHistory (PERSIST) ConvergenceStatus (PERSIST) Tests3 (PERSIST);
 
+*output Diffs(Anova results) ans LSMLines (Tukey test groups) to datasets;
 ods output DIFFS=ANOVA;
 ods output LSMLines=Groups;
 Proc glimmix data=BoxCoxTransLong plots=residualpanel; by Parameter; class trt; model observations=trt; random _residual_/group=trt; lsmeans trt/pdiff lines adjust=tukey alpha=0.005; title "ANOVA and Tukey test"; run;
@@ -5118,14 +5135,14 @@ Data Groups; set Groups;
  run;
 
 
-*Calculate Means for all variables;
+*Calculate Means for all variables. This will be combined with Groups later;
 Proc means data=ebert; 
      by trt;
      title "Untransformed means for all variables";
 	 output out=trtMeans;
 	 Run;
 
-*Transpose means for combining with Tukey Grouping;
+*Transpose calculated means for combining with Tukey Grouping;
 proc sql;
  create table trtMeansLong (drop= _TYPE_ _FREQ_ Transform maxdur) as select *,  _STAT_ as column from trtMeans;
 quit;
@@ -5133,17 +5150,42 @@ proc transpose data=trtMeansLong out=trtMeansLong; by trt; id column; idlabel co
 run;
 data trtMeansLong;
    set trtMeansLong;
-   length Parameter $32;
+   length Parameter $32; *Make sure it cal hold long acronyms;
    Parameter=cats('T',_NAME_); *T is added to make the parameter names the same as in Groups;
    drop _name_;
 run;
 
-*Merge the two datasets;
+*Finally merge the two datasets into a pretty table;
 Proc sort data=work.trtMeansLong; by Parameter trt;
 Proc sort data=work.Groups; by Parameter trt;
 Data Final; Set trtMeansLong Groups; 
 merge trtMeansLong Groups; by Parameter trt;
 run;
+
+*delete unncecessary datasets ("unncecessary" may vary for different use cases);
+proc datasets lib=work nolist; delete BoxCoxTransLong trtMeans trtMeansLong Groups;
+
+*export the Final table that combines untransformed means and Tukey grouping in one CSV file;
+*Name is given autmatically;
+proc export data=Final outfile="&OutPath.&InFile.-Output-MeansTukey.csv" dbms=csv replace;
+ ods results;
+ ods html close;
+run;
+********************************************************************************************
+*** ATTENTION: The table Groups and therefore Final will not contain information if      ***
+*** Tukey grouping was not able to generate letter code for all significant differences. ***
+*** This can happen if there is larger number of treatments being compared beacause      ***
+*** LSMLines can ony show letters continuously which is not allways possible. In this    ***
+*** case the message "The LINES display does not reflect all significant comparisons.    ***
+*** The following additional pairs are significantly different: <list of pairs>" is      ***
+*** printed in HTML output, so make sure you check for those cases in HTML output!       ***
+********************************************************************************************
+
+
+***************************************************************************************
+*** Following  ANOVA table is interesting if someone wants the exact p-value for    ***
+*** any of trt pairwise comparisons and does not want to scroll through HTML output ***
+***************************************************************************************;
 
 *Make easy to read names of the parameters in the ANOVA table!;
 Data ANOVA; Set ANOVA;
@@ -5326,13 +5368,12 @@ RUN;
 Data ANOVA; Set ANOVA;
 FORMAT  Parameter $Parameter.; *apply created labels;
 run;
-
-*delete unncecessary datasets;
-proc datasets lib=work nolist; delete BoxCoxTransLong trtMeans;
-
-*export supernice table that combines means and ANOVA in one CSV file;
-proc export data=Final outfile="&OutPath.&InFile.-Output-ANOVAMeans.csv" dbms=csv replace;
+*Uncomment the following to export the ANOVA table to .csv file;
+/*
+proc export data=ANOVA outfile="&OutPath.&InFile.-Output-ANOVA.csv" dbms=csv replace;
  ods results;
  ods html close;
 run;
+*/;
+
 quit;
