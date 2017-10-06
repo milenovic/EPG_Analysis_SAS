@@ -5098,20 +5098,25 @@ run;
 proc transpose data=BoxCoxTrans out=BoxCoxTransLong NAME = Parameter LABEL = ParameterLabel ;
   by insectno trt;
 run;
+
+*Labels, affects HTML output and graph title when using BY statement;
+Data BoxCoxTransLong; Set BoxCoxTransLong;
+LABEL Parameter = "Parameter" ParameterLabel = "Parameter Label"; run;
+
 *Data must be sorted accoring to the variable specified in BY statement;
 Proc sort data=BoxCoxTransLong; by Parameter;
 
-*rename. Primaraly so the residual grap title is at least a little less meaningless.;
+*rename. Primaraly so the residual grap title is less meaningless.;
 proc datasets lib = work nolist;
  modify BoxCoxTransLong;
- rename COL1=observations;
+ rename COL1=transformed;
 run;
 
 Data BoxCoxTransLong; Set BoxCoxTransLong; drop IDNew TIDNew; run;
 
 *ANOVA with Tukey test procedure!;
 ods exclude none;
-ods graphics on;
+ods graphics on / byline=title;  *byline ensures that Residual plot has a subtitle with variable name;
 *ods trace on; *used for testing to figure out ODS table names (see next line);
 
 *Supress unwanted tables from the output;
@@ -5120,7 +5125,7 @@ ods exclude ModelInfo (PERSIST) ClassLevels (PERSIST) Dimensions (PERSIST) OptIn
 *output Diffs(Anova results) ans LSMLines (Tukey test groups) to datasets;
 ods output DIFFS=ANOVA;
 ods output LSMLines=Groups;
-Proc glimmix data=BoxCoxTransLong plots=residualpanel; by Parameter; class trt; model observations=trt; random _residual_/group=trt; lsmeans trt/pdiff lines adjust=tukey alpha=0.005; title "ANOVA and Tukey test"; run;
+Proc glimmix data=BoxCoxTransLong plots=residualpanel; by Parameter; class trt; model transformed=trt; random _residual_/group=trt; lsmeans trt/pdiff lines adjust=tukey alpha=0.005; title "ANOVA and Tukey test "; run;
 ods output close;
 *ods trace off;
 
@@ -5133,7 +5138,6 @@ Data Groups; set Groups;
  Letter=cats(of Line:);
  drop of Line:;
  run;
-
 
 *Calculate Means for all variables. This will be combined with Groups later;
 Proc means data=ebert; 
