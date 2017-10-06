@@ -10,18 +10,21 @@ run;
 %macro PFreq1(var1);
 	Proc freq data=Five5;
 	table &var1;
-	title 'Frequency Table of Waveform Event Transitions';
+	title 'Frequency Table of Waveform Events';
+	run;
+	
 %mend;
 
 %macro PFreq2(var1);
 	Proc freq data=one;
 	table &var1;
-	title 'Frequency Table of Waveform Event Transitions';
+	title 'Frequency Table of Waveform Transitions';
 %mend;
 
 %macro p; *This is the print macro;
 	proc print data=one;
 	where marker1 = 1;
+    Title "Attention: Errors found!!!";
 	run;
 %mend;
 
@@ -149,7 +152,7 @@ run;
 
 
 Data Four; set three;
-title 'Duration by waveform Output';
+title 'Duration of waveforms for every insect';
 proc sort; by insectno waveform;
 Proc means n min max mean median; var dur; by insectno waveform;
  run;
