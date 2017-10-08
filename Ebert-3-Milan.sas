@@ -3515,7 +3515,7 @@ proc sort data=three; by line;
 
 proc sort data=three; by line;
 data three; set three;
-drop in0 out=three; 
+drop in0; 
 retain in0 holder1;
 if in0 ne insectno then do; in0=insectno; holder1=0; end;
 if marker2=0 then holder1=sum(holder1, dur);
