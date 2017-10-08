@@ -3511,11 +3511,11 @@ data three; set three;
 retain in0 marker2;
 if in0 ne insectno then do in0=insectno; marker2=0; end;
 if waveform="PD"  then marker2=marker2+1;
-proc sort data=three; by line;
+*proc sort data=three; *by line;
 
-proc sort data=three; by line;
+proc sort data=three out=three(drop=in0); by line;
 data three; set three;
-drop in0; 
+*drop in0; 
 retain in0 holder1;
 if in0 ne insectno then do; in0=insectno; holder1=0; end;
 if marker2=0 then holder1=sum(holder1, dur);
