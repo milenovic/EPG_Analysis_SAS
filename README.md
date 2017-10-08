@@ -12,7 +12,7 @@ SAS program for parameter calculation and statistical analysis of Electrical Pen
 * At the end of analysis, add labels for all parameters for easy readability (e.g.: DurNpFllwFrstSusE2 = Duration of NP following first sustained E2)
 
 ### TO DO
-* Make error checker display results in more user friendly way.
+* ~~Make error checker display results in more user friendly way.~~ (Done)
 * Further optimizations for speed.
 
 ### References
