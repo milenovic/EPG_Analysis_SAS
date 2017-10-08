@@ -3511,11 +3511,8 @@ data three; set three;
 retain in0 marker2;
 if in0 ne insectno then do in0=insectno; marker2=0; end;
 if waveform="PD"  then marker2=marker2+1;
-*proc sort data=three; *by line;
-
 proc sort data=three out=three(drop=in0); by line;
-data three; set three;
-*drop in0; 
+data three; set three; 
 retain in0 holder1;
 if in0 ne insectno then do; in0=insectno; holder1=0; end;
 if marker2=0 then holder1=sum(holder1, dur);
@@ -5051,68 +5048,26 @@ run;
 data ebert; set ebert;
 TtlPrbTm = 43200 - TtlPrbTm; 
 run;
-
-*Create dataset with variable names to be used for automation in Call Execute;
-proc transpose data=Ebert(drop=insectno transform maxdur)out=VarNames(keep=_name_ _label_);
-
-*Create dataset BoxCoxTrans that will hold transformed values, add ID, insectno and trt;
-data BoxCoxTrans; set Ebert; IDNew=_n_; keep IDNew insectno trt;
-Proc sort data=work.BoxCoxTrans; by IDNew;
-run;
-Proc sort data=work.Ebert; by IDNew;
-run;
-
 *Following two lines control BoxCox transformation output;
+
 ods exclude all;
 ods graphics off;
 
-*Transform Every variable present in Ebert table using BoxCox transformation!;
-*Collect all output in BoxCoxTrans table;
-*Pay attention to sorting for correct merge;
-Data Ebert; Set Ebert;
-      data _null_;				  
-        set VarNames;
-		call execute("
-					  title 'BoxCox of " || _LABEL_ || "';
-					  proc transreg  NOZEROCONSTANT data=Ebert nomiss;
-                      model boxcox("|| _NAME_ || "/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxOut;
-                      data BoxCoxOut; set BoxCoxOut; IDNew=_n_; run;
-                      Proc sort data=work.BoxCoxOut; by IDNew; run;
-					  data BoxCoxOut; set BoxCoxOut;
-					  if "|| _NAME_ || "='.' then T"|| _NAME_ || "='.';
-					  run;
-					  data BoxCoxOut; set BoxCoxOut; keep IDNew T" || _NAME_ || ";
-					  data BoxCoxTrans; set BoxCoxTrans; merge BoxCoxOut; by IDNew;
-					  run;"
-                    );
+*Transpose Ebert to Long format and sort so BY statement can be used;
+Proc sort data=work.Ebert out=EbertLong (drop= maxdur); by insectno;
 run;
-
-*Cleanup;
-proc delete lib=work data= BoxCoxOut _cntnts_ VarNames;
-Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; drop IDNew; run; *drop IDNew, and also revert TtlPrbTm back to normal so the means are correct;
-Data BoxCoxTrans; Set BoxCoxTrans; drop IDNew TIDNew; run;
-
-*Convert transformed data to Long format so GLIMMIX BY statement can be used;
-Proc sort data=work.BoxCoxTrans; by insectno;
+proc transpose data=EbertLong out=EbertLong NAME = Parameter LABEL = ParameterLabel ;
+  by insectno trt transform;
 run;
-proc transpose data=BoxCoxTrans out=BoxCoxTransLong NAME = Parameter LABEL = ParameterLabel ;
-  by insectno trt;
+proc sort data=EbertLong; by Parameter;
+
+*Transform all variables using BoxCox transformation;
+proc transreg nozeroconstant data=EbertLong nomiss; by Parameter; id insectno trt;
+model boxcox(COL1/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxTransLong;
+Proc delete lib=work data=EbertLong;
+*Sort as required for PROC GLIMMIX BY statement;
+proc sort data=BoxCoxTransLong out=BoxCoxTransLong(where=(Untransformed is NOT MISSING) keep=Parameter trt insectno COL1 TCOL1 rename=(COL1=untransformed TCOL1=transformed)); label Parameter='Parameter'; by Parameter;
 run;
-
-*Labels, affects HTML output and graph title when using BY statement;
-Data BoxCoxTransLong; Set BoxCoxTransLong;
-LABEL Parameter = "Parameter" ParameterLabel = "Parameter Label"; run;
-
-*Data must be sorted accoring to the variable specified in BY statement;
-Proc sort data=BoxCoxTransLong; by Parameter;
-
-*rename. Primaraly so the residual grap title is less meaningless.;
-proc datasets lib = work nolist;
- modify BoxCoxTransLong;
- rename COL1=transformed;
-run;
-
-Data BoxCoxTransLong; Set BoxCoxTransLong; drop IDNew TIDNew; run;
 
 *ANOVA with Tukey test procedure!;
 ods exclude none;
@@ -5142,6 +5097,7 @@ Data Groups; set Groups;
  drop of Line:;
  run;
 
+Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; *revert to normal so the means are correct!;
 *Calculate Means for all variables. This will be combined with Groups later;
 Proc means data=ebert; 
      by trt;
@@ -5157,11 +5113,10 @@ quit;
 proc delete lib=work data= trtMeans;
 proc transpose data=trtMeansLong out=trtMeansLong; by trt; id column; idlabel column;
 run;
-data trtMeansLong;
-   set trtMeansLong;
-   length Parameter $32; *Make sure it cal hold long acronyms;
-   Parameter=cats('T',_NAME_); *T is added to make the parameter names the same as in Groups;
-   drop _name_;
+
+proc datasets lib = work nolist;
+ modify trtMeansLong;
+ rename _NAME_=Parameter;
 run;
 
 *Finally merge the two datasets into a pretty table;
