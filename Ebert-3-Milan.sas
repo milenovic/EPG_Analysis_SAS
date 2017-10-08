@@ -72,7 +72,7 @@ if waveform='10' then waveform='II3';
 if waveform='11' then waveform="PDL";
 
 data one; set one;
-	trt=substr(insectno,1,1);*recover treatment designations*;
+	trt=substr(insectno,1,1);  *recover treatment designations*;
     *insectno=compress(trt||insectno);
 	Transform=1; *Transform=0 will disable all transformations*;
     proc sort; by insectno;
@@ -128,17 +128,17 @@ Run;
 *****        This data set combines all pd waveforms into C        **
 *********************************************************************;
 Data OnlyCNoPd; set one;
-	if compress(upcase(waveform))='PD' then waveform='C';
-	if compress(upcase(waveform))='PDS' then waveform='C';
-	if compress(upcase(waveform))='PDL' then waveform='C';
-	if compress(upcase(waveform))='II1' then waveform='C';
-	if compress(upcase(waveform))='II2' then waveform='C';
-	if compress(upcase(waveform))='II3' then waveform='C';
-*	if compress(upcase(waveform))='F'   then waveform='C'; *Activating this line merges F and C waveforms*;
+	if waveform='PD' then waveform='C';
+	if waveform='PDS' then waveform='C';
+	if waveform='PDL' then waveform='C';
+	if waveform='II1' then waveform='C';
+	if waveform='II2' then waveform='C';
+	if waveform='II3' then waveform='C';
+*	if waveform='F'   then waveform='C'; *Activating this line merges F and C waveforms*;
 Data OnlyCNoPd; Set OnlyCNoPd; proc sort; by line;
 Data OnlyCNoPd; Set OnlyCNoPd;
 	retain w0 w1 in0 marker1;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; in0=insectno; marker1=0;
 	end;
@@ -153,7 +153,7 @@ Data onepdSAS; set onepdSAS; dur=dursum;
 data OnlyCNoPd; set OnlyCNoPd; drop dur line sumstart sumend instance inverter1 w1 w0 in0;
 Data OnlyCNoPd; Set OnlyCNoPd;
 	retain w0 w1 in0 time1;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; in0=insectno; time1=0;
 	end;
@@ -161,7 +161,7 @@ Data OnlyCNoPd; Set OnlyCNoPd;
 	else If w1 ne w0 then output;
 	w0=w1;
 data onepdSAS; set onepdSAS OnlyCNoPd; merge onepdSAS OnlyCNoPd; by insectno marker1;
-data oneD; set onepdSAS;  Var1=insectno; Var2=waveform; Var3=dur;
+data oneD; set onepdSAS; Var1=insectno; Var2=waveform; Var3=dur;
 data oneD; set oneD; drop insectno marker1 _TYPE_ _Freq_ dursum dur waveform;
 Data oneD; set oneD; waveform=Var2; insectno=Var1; dur=Var3;
 data oneD; set oneD; drop Var1 var2 var3;
@@ -185,7 +185,7 @@ data OnlyCNoPd;set OnlyCNoPd; by insectno waveform;
 data OnlyCNoPd; set OnlyCNoPd; proc sort; by line;
 data OnlyCNoPd; set OnlyCNoPd; inverter1=50000-line;
 data OnlyCNoPd; set OnlyCNoPd; drop time1;
-proc datasets nodetails nolist; delete oneD onepdSAS;
+proc delete lib=work data= oneD onepdSAS;
 run;
 *********************************************************************
 **************************   Method end   ***************************
@@ -201,7 +201,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='PD' then Marker1=1;
+    if waveform='PD' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -227,15 +227,15 @@ run;
 *******                   define the dataset onepd                ***
 *******	 all pds and pdl have been added to make a single pd event***
 *********************************************************************;
-Data onepd; set onlypd;                  *convert pds and pdl into pd;
-if compress(upcase(waveform))='PDL' or 
-	compress(upcase(waveform))='PDS' or
-	compress(upcase(waveform))='II2' or
-	compress(upcase(waveform))='II3' then waveform='PD';
+Data onepd; set onlypd;  *convert pds and pdl into pd;
+if waveform='PDL' or 
+	waveform='PDS' or
+	waveform='II2' or
+	waveform='II3' then waveform='PD';
 Data onepd; Set onepd; proc sort; by line;
 Data onepd; Set onepd;
 	retain w0 w1 in0 marker1;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; in0=insectno; marker1=0;
 	end;
@@ -256,7 +256,7 @@ marker2=marker1;
 data onepd; set onepd; Where marker3=1;
 data onepd; set onepd; drop marker2 marker3 in0;
 data onepdSAS; set onepdSAS onepd; merge onepd onepdSAS; by insectno marker1;
-data oneD; set onepdSAS;  Var1=insectno; Var2=waveform; Var3=dur;
+data oneD; set onepdSAS; Var1=insectno; Var2=waveform; Var3=dur;
 data oneD; set oneD; drop insectno marker1 _TYPE_ _Freq_ dursum dur waveform;
 Data oneD; set oneD; insectno=Var1; waveform=Var2; dur=Var3;
 data oneD; set oneD; drop Var1 var2 var3;
@@ -280,7 +280,7 @@ instance=instance+1;
 data onepd; set onepd; proc sort; by line;
 data onepd; set onepd; drop in0 dur0;
 data onepd; set onepd; inverter1=50000-line;
-proc datasets nodetails nolist; delete oned onepdSAS;
+proc delete lib=work data= oned onepdSAS;
 run;
 *********************************************************************
 *  Finished creating dataset OnePd
@@ -296,7 +296,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='G' then Marker1=1;
+    if waveform='G' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -327,7 +327,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='F' then Marker1=1;
+    if waveform='F' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -362,7 +362,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='D' then Marker1=1;
+    if waveform='D' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -395,7 +395,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='E1' then Marker1=1;
+    if waveform='E1' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -426,7 +426,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='E2' then Marker1=1;
+    if waveform='E2' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -458,7 +458,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='E2' and dur>600 then Marker1=1;
+    if waveform='E2' and dur>600 then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -491,7 +491,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='G' and dur>600 then Marker1=1;
+    if waveform='G' and dur>600 then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -523,7 +523,7 @@ Data three; set three;
 	if insectno ne in0 then do;
 	 in0=insectno; marker1=0; 
 	end;
-    if compress(upcase(waveform))='E1E' then Marker1=1;
+    if waveform='E1E' then Marker1=1;
 Data three; set three;
 Proc sort; by insectno Inverter1;
 Data three; set three; drop in0;
@@ -544,7 +544,7 @@ run;
 *  Finished creating dataset OnlyE1e
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*;
 
-proc datasets nodetails nolist; delete three;
+proc delete lib=work data= three;
 
 *********************************************************************
 ****               THE END. START Computing Variables      **********
@@ -622,7 +622,7 @@ Data three; set OnlyE1;
 Data three; set three; Proc sort; by insectno line;
 Data three; set three;
 	retain in0 marker1 marker2;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	 marker1=0; Marker2=0;
 	 in0=insectno;
@@ -661,7 +661,7 @@ run;
 *********************************   Start New Method    *************
 **********                           The number of F    *************
 *********************************************************************;
-data three; set OnlyF; if compress(upcase(waveform))='F' then output;
+data three; set OnlyF; Where waveform='F';
 proc sort; by insectno inverter1;
 data three; set three; 
 retain in0 marker1;
@@ -690,9 +690,9 @@ data Ebert; set Ebert; if NumF='.' then NumF="0";
 *  eliminate all but instance=1, then all but instance=2.         ***
 *  Delete extraneous variables and merge.                         ***
 *********************************************************************;
-Proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 Data three; set one;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))='Z' then do marker1=1; waveform="Z"; end; else do marker1=0; waveform="P"; end;
+	if waveform='NP' or waveform='Z' then do marker1=1; waveform="Z"; end; else do marker1=0; waveform="P"; end;
 Data three; set three;
 	retain W1 W0 in0 marker2;
 	if in0 ne insectno then do;
@@ -742,7 +742,7 @@ data four; set four; DurFrstPrb=sdur; drop sdur waveform dur line sumstart sumen
 data five; set five; DurScndPrb=sdur; drop sdur waveform dur line sumstart sumend inverter1 marker1 marker2 marker4 instance;
 data Ebert; set Ebert four; merge Ebert four; by insectno;
 data Ebert; set Ebert five; merge Ebert five; by insectno;
-proc datasets nolist nodetails; delete four five three;
+proc delete lib=work data= four five three;
 
 *********************************************************************
 *  Finding duration of First and Second probe is finished.
@@ -757,7 +757,7 @@ proc datasets nolist nodetails; delete four five three;
 *********************************************************************;
 Data three; set OnlyCNoPd; Proc sort; by insectno line;
 data three; set three;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))='Z' then waveform='Z'; else if compress(upcase(waveform))='E1' then waveform='E1'; else waveform='P';
+	if waveform='NP' or waveform='Z' then waveform='Z'; else if waveform='E1' then waveform='E1'; else waveform='P';
 data three; set three;
 	retain in0 marker1 w0;
 	if in0 ne insectno then do;
@@ -787,7 +787,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; Sdur=dur; W1='  ';
 	end;
-	W0=compress(upcase(waveform));
+	W0=waveform;
 	if W0 eq w1 then sdur=sum(sdur, dur); else sdur=dur;
 	w1=w0;
 
@@ -814,7 +814,7 @@ data three; set three; proc sort; by insectno;
 data three; set three; proc means noprint; by insectno; var Sdur; output out=outsas min=ShrtCbfrE1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data Ebert; Set Ebert; drop _TYPE_ _FREQ_;
-proc datasets nolist nodetails; delete three outsas; 
+proc delete lib=work data= three outsas; 
 
 *********************************************************************
 *  Finding duration of shortest C event (including pd) before an E1.
@@ -834,7 +834,7 @@ retain in0 holder4;
 if in0 ne insectno then do; in0=insectno; holder4=waveform; end;
 data three; set three; drop in0;
 data three; set three;
-	if  compress(upcase(waveform))='Z' or compress(upcase(waveform))='NP' then output;
+	Where waveform='Z' or waveform='NP';
 data three; set three;
 	if holder4="NP" or holder4="Z" then instance=instance; else instance=instance+1;
 data three; set three; Where instance=2;
@@ -844,7 +844,7 @@ Data three; set three;
 Data Ebert; set Ebert three;
 	merge Ebert three;
 	by insectno;
-proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 *********************************************************************
 *  Finding duration of Second non-probe event is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -854,7 +854,7 @@ proc datasets nolist nodetails; delete three;
 *******                         Start New Method    *****************
 *******         Total duration of F                 *****************
 *********************************************************************;
-Data three; set OnlyF; if compress(upcase(waveform))='F' then output;
+Data three; set OnlyF; Where waveform='F';
 Data three; set three;
 	retain in0 TtlDurF;
 	if insectno ne in0 then do;
@@ -885,16 +885,16 @@ Data three; set One; *Using dataset OnlyE1 will change insects without E1 to mis
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform)) eq 'E1' then marker1=1;
+	if waveform eq 'E1' then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three; proc sort; by insectno inverter1;
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform)) eq 'Z' or compress(upcase(waveform)) eq 'NP' then marker1=1;
+	if waveform eq 'Z' or waveform eq 'NP' then marker1=1;
 Data three; set three; Where marker1=1;
-Data three; set three; if compress(upcase(waveform)) eq 'Z' or compress(upcase(waveform)) eq 'NP' then output;
+Data three; set three; Where waveform='Z' or waveform='NP';
 Data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno line;
 data three; set three; 
@@ -922,11 +922,11 @@ data Ebert; set Ebert three; merge Ebert three; by insectno;
 ****       Mean duration of pd
 *********************************************************************;
 Data three; set OnePD;
-data three; set three; if compress(upcase(waveform))='PD' then output;
+data three; set three; Where waveform='PD';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas mean=meanpd;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean duration of pd is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -936,11 +936,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ******                          Start New Method    *****************
 ******                Mean duration of pdL
 *********************************************************************;
-Data three; set one; if compress(upcase(waveform))='PDL' then PDL=dur;
+Data three; set one; if waveform='PDL' then PDL=dur;
 Data three; set three; proc means noprint; by insectno; var PDL; output out=outsas mean=meanPDL;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete outsas three;
+proc delete lib=work data= outsas three;
 *********************************************************************
 *  Finding Mean duration of pd is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXXX*
@@ -950,12 +950,12 @@ proc datasets nolist nodetails; delete outsas three;
 ******                        Start New Method    *******************
 ******     Mean duration of pdS
 *********************************************************************;
-Data three; set one; if compress(upcase(waveform))='PD' then PDS=dur;
+Data three; set one; if waveform='PD' then PDS=dur;
 Data three; set three; proc means noprint; by insectno; var PDS; output out=outsas mean=meanPDS;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 data Ebert; set Ebert; if meanPDS='.' and meanpd ne '.' then meanpds=meanpd;
-proc datasets nolist nodetails; delete outsas three;
+proc delete lib=work data= outsas three;
 *********************************************************************
 *  Finding Mean duration of pds is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -968,7 +968,7 @@ proc datasets nolist nodetails; delete outsas three;
 *********************************************************************;
 Data three; set onepd; 								*mark each probe.;
 	retain in0 marker1;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0;
 	end;
@@ -980,7 +980,7 @@ Data three; set three; 					*counting the number of probes;
 	if insectno ne in0 then do;
 		in0=insectno; marker2=0; holder1=0;
 	end;
-	if holder1 ne marker1  and compress(upcase(waveform))='C' then do;
+	if holder1 ne marker1  and waveform='C' then do;
 		marker2=marker2+1;
 	end;
 	holder1=marker1;
@@ -992,11 +992,11 @@ Data three; set three;						*counting pd in each probe;
 	end;
 	if marker1=1 and holder1=0 then marker3=1;
 	if marker1=0 and holder1=1 then marker3=0;
-	if marker3=1 and compress(upcase(waveform))='PD' then marker4=marker4+1;
+	if marker3=1 and waveform='PD' then marker4=marker4+1;
 	if marker3=0 then marker4=0;
 	holder1=marker1;
 Data three; set three; drop in0 holder1 marker3;
-Data three; set three; proc sort; by insectno inverter1;*Isolate last entry in each probe;
+Data three; set three; proc sort; by insectno inverter1;  *Isolate last entry in each probe;
 Data three; set three;
 	retain in0 holder1 marker5;
 	if insectno ne in0 then do;
@@ -1011,7 +1011,7 @@ data three; set three; proc sort; by insectno line;
 data three; set three; proc means noprint; var marker4; by insectno; output out=outsas mean=meanNPdPrb;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete outsas three;
+proc delete lib=work data= outsas three;
 *********************************************************************
 *  Finding Average number of pd per probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1021,7 +1021,7 @@ proc datasets nodetails nolist; delete outsas three;
 ********                        Start New Method    *****************
 ********      Mean duration of F
 *********************************************************************;
-Data three; set OnlyF; if compress(upcase(waveform))='F' then output;
+Data three; set OnlyF; Where waveform='F';
 Data three; set three;
 	retain in0 meanF;
 	if insectno ne in0 then do;
@@ -1040,7 +1040,7 @@ Data three; set three; Where marker1=1;
 Data three; set three; MeanF=meanF/instance;
 Data three; Set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-proc datasets nodetails nolist; delete three;
+proc delete lib=work data= three;
 run;
 *********************************************************************
 *  Finding Mean duration of F is finished.
@@ -1057,7 +1057,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='E1' then  marker1=1;
+	if waveform='E1' then  marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; proc sort; by insectno inverter1;
 data three; set three; drop in0 marker1;
@@ -1071,7 +1071,7 @@ Data three; set three; Where marker1=0;
 data three; set three; TmStrtEPGFrstE=sumend;
 data three; set three; drop waveform dur line sumstart sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 Run;
 *********************************************************************
 *  Finding Time from start of EPG to 1st E is finished.
@@ -1090,7 +1090,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='E1' then  marker1=1;
+	if waveform='E1' then  marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -1098,7 +1098,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='C' then marker1=1;
+	if waveform='C' then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three;
@@ -1134,7 +1134,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='E1' then  marker1=1;
+	if waveform='E1' then  marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -1142,7 +1142,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='C' then marker1=1;
+	if waveform='C' then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno inverter1;
@@ -1151,7 +1151,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='Z' or compress(upcase(waveform))='NP' then marker1=1;
+	if waveform='Z' or waveform='NP' then marker1=1;
 data three; set three; proc sort; by line;
 data three; set three; Where marker1=0;
 Data three; set three; drop in0 marker1;
@@ -1188,12 +1188,12 @@ data three; set OnlyG;
 proc sort; by insectno waveform;
 data three; set three; drop line sumstart sumend instance inverter1;
 data three; set three;
-proc means noprint; by insectno waveform;  output out=outsas n=num mean=avg sum=sum1;
-data G; set outsas; if compress(upcase(waveform))='G' then output;
+proc means noprint; by insectno waveform; output out=outsas n=num mean=avg sum=sum1;
+data G; set outsas; Where waveform='G';
 Data G; set G; NumG=num; DurG=sum1; MeanG=avg; drop _TYPE_ _FREQ_ waveform num avg sum1;
 Data Ebert; set Ebert g; merge Ebert g; by insectno;
 data Ebert; set Ebert; if NumG='.' then NumG=0;
-proc datasets nolist nodetails; delete G outsas three;
+proc delete lib=work data= G outsas three;
 *********************************************************************
 *  Finding NumG DurG, and MeanG is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1204,7 +1204,7 @@ proc datasets nolist nodetails; delete G outsas three;
 ***   Find Number of sustained G by milan;
 *********************************************************************;
 Data three; set OnlyG;
-if compress(upcase(waveform))='G' and dur>600 then marker1=1; else marker1=0;
+if waveform='G' and dur>600 then marker1=1; else marker1=0;
 data three; set three; proc means noprint;
 	by insectno; var marker1; output out=outsas sum=NumLngG;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -1220,7 +1220,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data three; set OnlySusG; 
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="G" and dur>600 then marker1=1;
+if waveform="G" and dur>600 then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three;
 proc means noprint; var sumend; by insectno; output out=outsas max=TmSusG;
@@ -1233,7 +1233,7 @@ data three; set one; retain marker1;
 data three; set three;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="C" then marker1=1;
+if waveform="C" then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three;
@@ -1244,7 +1244,7 @@ data outsas; set outsas; TmFrstSusGFrstPrb=TmfrstSusG-Sumdur;
 data outsas; set outsas; if TmFrstSusGFrstPrb<=0 then TmFrstSusGFrstPrb=".";
 data outsas; set outsas; drop TmfrstSusG Sumdur;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas outsas1 outsas3 three;
+proc delete lib=work data= four outsas outsas1 outsas3 three;
 *********************************************************************
 *  Finding first sustained G from first probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1259,7 +1259,7 @@ Data three; set OnlyE1;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='E1' then marker1=1;
+	if waveform='E1' then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 
@@ -1269,19 +1269,19 @@ data three; set three;
 		in0=insectno; marker2=0; delay1=1;
 	end;
 	if delay1=0 then do;
-		if compress(upcase(waveform))='Z' then marker2=marker2+1;
-		if compress(upcase(waveform))='NP' then marker2=marker2+1;
+		if waveform='Z' then marker2=marker2+1;
+		if waveform='NP' then marker2=marker2+1;
 		 
 	end;
 	delay1=0;
-data three; set three; if compress(upcase(waveform))='C' then output;
-data three; set three; proc means noprint;
+data three; set three; Where waveform='C';
+Data three; set three; proc means noprint;
 	by insectno; var marker2; output out=outsas max=NumPrbsAftrFrstE;
 data outsas; set outsas; if NumPrbsAftrFrstE='.' then NumPrbsAftrFrstE=0;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data Ebert; set Ebert; if NumPrbsAftrFrstE='.' then NumPrbsAftrFrstE=0;
-proc datasets nodetails nolist; delete three outsas;
+proc delete lib=work data= three outsas;
 run;
 *********************************************************************
 *  Finding Number of probes after first E1 is finished.
@@ -1297,7 +1297,7 @@ Data three; set OnlyE1;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='E1' then marker1=1;
+	if waveform='E1' then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 
@@ -1306,7 +1306,7 @@ Data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))="Z" then marker1=1;
+	if waveform='NP' or waveform="Z" then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -1315,12 +1315,12 @@ data three; set three;
 		in0=insectno; marker2=1; delay1=1;
 	end;
 	if delay1=0 then do;
-		if compress(upcase(waveform))='Z' then marker2=marker2+1;
-		if compress(upcase(waveform))='NP' then marker2=marker2+1;
+		if waveform='Z' then marker2=marker2+1;
+		if waveform='NP' then marker2=marker2+1;
 		 
 	end;
 	delay1=0;
-Data three; set three; if compress(upcase(waveform)) ne "Z" and compress(upcase(waveform)) ne "NP" then waveform="PRB";
+Data three; set three; if waveform ne "Z" and waveform ne "NP" then waveform="PRB";
 data three; set three; 
   proc sort; by insectno marker2 waveform;
   proc means noprint; by insectno marker2 waveform; var dur; output out=outsas2 sum=sdur;
@@ -1335,7 +1335,7 @@ Data outsas2; set outsas2;
 data outsas4; set outsas4; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas4; merge Ebert outsas4; by insectno;
 Data Ebert; set Ebert; if NmbrShrtPrbAftrFrstE='.' then NmbrShrtPrbAftrFrstE=0;
-proc datasets nolist nodetails; delete three outsas4 outsas2;
+proc delete lib=work data= three outsas4 outsas2;
 run;
 *********************************************************************
 *  Finding Number of probes <3min after first E1 is finished.
@@ -1349,8 +1349,8 @@ run;
 ***	Number of E1
 *********************************************************************;
 Data three; set onlye1;
-data three; set three; if compress(upcase(waveform))='E1' then output;
-data three; set three;
+data three; set three; Where waveform='E1';
+Data three; set three;
 marker1=1;
 data three; set three; proc means noprint;
 by insectno; var marker1; output out=outsas sum=NumE1;
@@ -1369,7 +1369,7 @@ data Ebert; set Ebert; if NumE1='.' then NumE1=0;
 Data three; set onlye1;
 data three; set three;
 	retain in0 w1 w0 holder1 marker1;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; w0='   '; holder1=0; marker1=0;
 	end;
@@ -1393,7 +1393,7 @@ data Ebert; set Ebert; if NumLngE1BfrE2='.' then NumLngE1BfrE2=0;
 *********************************************************************;
 data three; set onlyE1;
 	retain in0 w1 w0 marker1 marker2 marker3;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; w0='   '; marker1=0; marker2=0; marker3=0;
 	end;
@@ -1427,7 +1427,7 @@ run;
 ***  Finding number of E2
 *********************************************************************;
 Data three; set OnlyE2;
-if compress(upcase(waveform))='E2' then marker1=1; else marker1=0;
+if waveform='E2' then marker1=1; else marker1=0;
 data three; set three; proc means noprint;
 	by insectno; var marker1; output out=outsas sum=NumE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -1442,7 +1442,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ***   Find Number of sustained E2;
 *********************************************************************;
 Data three; set OnlyE2;
-if compress(upcase(waveform))='E2' and dur>600 then marker1=1; else marker1=0;
+if waveform='E2' and dur>600 then marker1=1; else marker1=0;
 data three; set three; proc means noprint;
 	by insectno; var marker1; output out=outsas sum=NumLngE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -1459,19 +1459,19 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data three; set onlyE1;
 	retain marker1 w0 w1 in0;
 	if in0 ne insectno then do; w0="    "; in0=insectno; marker1=0; end;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if w0="E2" then marker1=1;	
 	w0=w1;
 Data three; set three; Where marker1=0;
 Data three; set three; drop w0 w1 in0 marker1;
 
 Data three; set three;
-	if compress(upcase(waveform))='E1' then waveform='E';
-	if compress(upcase(waveform))='E2' then waveform='E';
+	if waveform='E1' then waveform='E';
+	if waveform='E2' then waveform='E';
 data three; set three;
 	retain sort1 w0 in0;
 	if in0 ne insectno then do; sort1=1; in0=insectno; end;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if w1 ne w0 then sort1=sort1+1; else sort1=sort1;
 	w0=w1;
 data three; set three;
@@ -1486,7 +1486,7 @@ data three;set three; by insectno waveform;
 	if first.waveform then instance=0;
 	instance=instance+1;
 data three; set three; Where waveform='E' and instance=1;
-proc datasets nolist nodetails; delete outthree;
+proc delete lib=work data= outthree;
 data three; set three;
 DurFirstE=durs;
 drop instance sort1 waveform durs;
@@ -1502,14 +1502,14 @@ data Ebert; set Ebert three; merge Ebert three; by insectno;
 ****	Find contribution of E1 to phloem phase
 *********************************************************************;
 Data three; set onlye1;
-	if compress(upcase(waveform))='E1' or compress(upcase(waveform))='E2' then output;
+	Where waveform='E1' or waveform='E2';
 Data three; set three;
 	proc sort; by insectno waveform;
 	Proc means noprint; by insectno waveform; var dur; output out=outsas sum=outSum;
-data four; set outsas; if compress(upcase(waveform))='E1' then output;
-data four; set four; outsumE1=outsum; drop outsum waveform _TYPE_ _FREQ_;
-data five; set outsas; if compress(upcase(waveform))='E2' then output;
-data five; set five; outsumE2=outsum; drop outsum waveform _TYPE_ _FREQ_;
+data four; set outsas; Where waveform='E1';
+Data four; set four; outsumE1=outsum; drop outsum waveform _TYPE_ _FREQ_;
+data five; set outsas; Where waveform='E2';
+Data five; set five; outsumE2=outsum; drop outsum waveform _TYPE_ _FREQ_;
 data three; set four five; merge four five; by insectno;
 data three; set three;
 if outsume1='.' then outsume1=0;
@@ -1519,7 +1519,7 @@ ttlsum=sum(outsumE1, outsumE2);
 CntrbE1toE=100*(outsumE1/ttlsum);
 data three; set three; drop outsumE1 outsumE2 ttlsum;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete three four five outsas;
+proc delete lib=work data= three four five outsas;
 *********************************************************************
 *  Finding contribution of E1 to phloem phase is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1533,12 +1533,12 @@ Proc datasets nolist nodetails; delete three four five outsas;
 data three; set onlysuse2;
 	retain in0 marker1;
 	if in0 ne insectno then do;	in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='E2' and dur>600 then marker1=1;
+	if waveform='E2' and dur>600 then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno inverter1;
-data three; set three; if compress(upcase(waveform))='E1' then output;
-data three; set three;
+data three; set three; Where waveform='E1';
+Data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do;	in0=insectno; marker1=0; end;
 	else marker1=1;
@@ -1546,7 +1546,7 @@ data three; set three; Where marker1=0;
 data three; set three; 	DurE1FlwdFrstSusE2 =dur;
 Data three; set three;	drop waveform line dur sumstart sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 *********************************************************************
 *  Finding Duration of E1 followed by first E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1560,12 +1560,12 @@ Proc datasets nolist nodetails; delete three;
 data three; set onlye2;
 	retain in0 marker1;
 	if in0 ne insectno then do;	in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='E2' then marker1=1;
+	if waveform='E2' then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno inverter1;
-data three; set three; if compress(upcase(waveform))='E1' then output;
-data three; set three;
+data three; set three; Where waveform='E1';
+Data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do;	in0=insectno; marker1=0; end;
 	else marker1=1;
@@ -1573,7 +1573,7 @@ data three; set three; Where marker1=0;
 data three; set three; 	DurE1FlldFrstE2 =dur;
 Data three; set three;	drop waveform line dur sumstart sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 *********************************************************************
 *  Finding Duration of E1 followed by sustained E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1588,21 +1588,21 @@ Proc datasets nolist nodetails; delete three;
 Data three; set onlyE2;
 data three; set three;
 	retain in0 w1 w0 marker2;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; marker2=0;
 	 in0=insectno; 
 	end;
-	if compress(upcase(waveform))='E2' then marker2=1;
+	if waveform='E2' then marker2=1;
 data three; set three; Where marker2=1;
 data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=DurE2toEnd;
-data three; set three; if compress(upcase(waveform))='E2' then output;
-data three; set three; proc means noprint; by insectno; var dur; output out=outsas1 sum=DurAllE2;
+data three; set three; Where waveform='E2';
+Data three; set three; proc means noprint; by insectno; var dur; output out=outsas1 sum=DurAllE2;
 data outsas; set outsas outsas1; merge outsas outsas1; by insectno;
 data outsas; set outsas; PotE2Indx=100*(DurAllE2/DurE2toEnd);
 data outsas; set outsas; drop _TYPE_ _FREQ_ DurAllE2 DurE2toEnd;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete outsas1 three outsas;
+proc delete lib=work data= outsas1 three outsas;
 *********************************************************************
 *  Finding Potential E2 Index is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1613,8 +1613,8 @@ proc datasets nolist nodetails; delete outsas1 three outsas;
 ****	Find total duration of E
 *********************************************************************;
 Data three; set onlye1;
-if compress(upcase(waveform))='E1' or compress(upcase(waveform))='E2' then output;
-data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE;
+Where waveform='E1' or waveform='E2';
+Data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 *********************************************************************
@@ -1627,11 +1627,11 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find total duration of E1
 *********************************************************************;
 Data three; set onlye1;
-if compress(upcase(waveform))='E1' then output;
-data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE1;
+Where waveform='E1';
+Data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-Proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 *********************************************************************
 *  Finding total duration of E1 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1642,12 +1642,12 @@ Proc datasets nolist nodetails; delete three outsas;
 ****	Find Total Duration of E1 followed by a sustained E2
 *********************************************************************;
 data three; set onlysusE2;
-	if compress(upcase(waveform))='E2' and dur>600 then marker1=1;
+	if waveform='E2' and dur>600 then marker1=1;
 	else marker1=0;
 data three; set three; proc sort; by insectno inverter1;
 data three; set three;
 	retain in0 w0 marker2;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; marker2=0; 
 	end;
@@ -1658,7 +1658,7 @@ data three; set three; Where marker2=1;
 data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE1FlldSusE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-Proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 
 *********************************************************************
 *  Finding Total Duration of E1 followed by a sustained E2 is finished.
@@ -1673,7 +1673,7 @@ Proc datasets nolist nodetails; delete three outsas;
 Data three; set onlye2; proc sort; by insectno inverter1;
 data three; set three;
 	retain marker1 in0 w1 w0;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0; w0='   ';
 	end;
@@ -1698,7 +1698,7 @@ Data three; set OnlyE1;
 Data three; Set three; proc sort; by insectno inverter1;
 data three; set three;
 	retain w0 w1 in0 marker2;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; marker1=0;
 	 in0=insectno; 
@@ -1709,7 +1709,7 @@ data three; set three; proc sort; by insectno line;
 data three; set three; drop in0 w1 w0;
 data three; set three;
 	retain in0 w0 w1;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 		in0=insectno; w0='   ';
 	end;
@@ -1732,7 +1732,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data three; set onlye2; proc sort; by insectno inverter1;
 data three; set three;
 	retain marker1 in0 w1 w0;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0; w0='   ';
 	end;
@@ -1744,8 +1744,8 @@ data three; set three; proc means noprint;
 	by insectno; var dur; output out=outsas sum=TtlDurE1FlldE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 
-data three; set onlye2; if compress(upcase(waveform))='E2' then output;
-data three; set three; proc means noprint; 
+data three; set onlye2; Where waveform='E2';
+Data three; set three; proc means noprint; 
 	by insectno; var dur; output out=outsas2 sum=SE2;
 data outsas2; set outsas2; drop _TYPE_ _FREQ_;
 data three; set outsas outsas2; merge outsas outsas2; by insectno;
@@ -1753,7 +1753,7 @@ data three; set three;
 TtlDurE1FllwdE2PlsE2=sum(TtlDurE1FlldE2, SE2);
 data three; set three; drop se2 TtlDurE1FlldE2;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-proc datasets nolist nodetails; delete outsas outsas2 three;
+proc delete lib=work data= outsas outsas2 three;
 *********************************************************************
 *  Finding Total duration of E1 followed by E2 plus E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -1764,8 +1764,8 @@ proc datasets nolist nodetails; delete outsas outsas2 three;
 ****	Total Duration of E2
 *********************************************************************;
 data three; set onlye2;
-	if compress(upcase(waveform))='E2' then output;
-data three; set three; proc means noprint;
+	Where waveform='E2';
+Data three; set three; proc means noprint;
 	by insectno; var dur; output out=outsas sum=TtlDurE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1779,8 +1779,8 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Mean Duration of E1
 *********************************************************************;
 data three; set onlye1;
-	if compress(upcase(waveform))='E1' then output;
-data three; set three; proc means noprint;
+	Where waveform='E1';
+Data three; set three; proc means noprint;
 	by insectno; var dur; output out=outsas mean=MnDurE1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1794,8 +1794,8 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Mean duration of E2
 *********************************************************************;
 data three; set onlye2;
-	if compress(upcase(waveform))='E2' then output;
-data three; set three; proc means noprint;
+	Where waveform='E2';
+Data three; set three; proc means noprint;
 	by insectno; var dur; output out=outsas mean=MnDurE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1810,7 +1810,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 *********************************************************************;
 data three; set one;
 	retain in0 marker1;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
@@ -1837,7 +1837,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 *********************************   Start New Method    *************
 ****	Find number of C events
 *********************************************************************;
-data three; set OnlyCnoPd; if compress(upcase(waveform))='C' then output;
+data three; set OnlyCnoPd; Where waveform='C';
 Data three; set three; marker1=1;
 proc means noprint;
 	by insectno; var marker1; output out=outsas sum=NmbrC;
@@ -1858,8 +1858,8 @@ retain in0 marker1;
 if in0 ne insectno then do;
 in0=insectno; marker1=0;
 end;
-if compress(upcase(waveform))="C" then marker1=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker1=0;
+if waveform="C" then marker1=1;
+if waveform="NP" or waveform="Z" then marker1=0;
 data three; set three; drop in0;
 data three; set three; 
 retain in0 marker2 holder1;
@@ -1868,7 +1868,7 @@ in0=insectno; marker2=0;
 end;
 if holder1=0 and marker1=1 then marker2=marker2+1;
 holder1=marker1;
-data three; set three; if compress(upcase(waveform)) ne "NP" and compress(upcase(waveform)) ne "Z" then output;
+data three; set three; Where waveform ne "NP" and waveform ne "Z";
 data three; set three; proc means noprint; var dur; by insectno marker2; output out=outsas sum=dur2;
 data three; set outsas; Where dur2<180; drop _TYPE_ _FREQ_;
 data three; set three;
@@ -1890,11 +1890,11 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find the Number of NP
 *********************************************************************;
 Data three; set one;
-data three; set three; if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker1=1; else marker1=0;
+data three; set three; if waveform="NP" or waveform="Z" then marker1=1; else marker1=0;
 data three; set three; proc means noprint; by insectno; var marker1; output out=outsas sum=NumNP;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete outsas three;
+proc delete lib=work data= outsas three;
 run;
 *********************************************************************
 *  Finding ........... is finished.
@@ -1909,7 +1909,7 @@ run;
 ****	Find the Number of pd
 *********************************************************************;
 Data three; set onepd;
-data three; set three; if compress(upcase(waveform))="PD" then marker1=1; else marker1=0;
+data three; set three; if waveform="PD" then marker1=1; else marker1=0;
 data three; set three; proc means noprint; by insectno; var marker1; output out=outsas sum=NmbrPD;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1924,7 +1924,7 @@ run;
 ****	Find the Number of pdL
 *********************************************************************;
 Data three; set one;
-data three; set three; if compress(upcase(waveform))="PDL" then marker1=1; else marker1=0;
+data three; set three; if waveform="PDL" then marker1=1; else marker1=0;
 data three; set three; proc means noprint; by insectno; var marker1; output out=outsas sum=NmbrPDL;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1939,8 +1939,8 @@ run;
 ****	Find the Number of pdS
 *********************************************************************;
 Data three; set one;
-data three; set three; if compress(upcase(waveform))="PDS" then marker1=1; else marker1=0;
-data three; set three; if marker1=0 and compress(upcase(waveform))="PD" then marker1=1;
+data three; set three; if waveform="PDS" then marker1=1; else marker1=0;
+data three; set three; if marker1=0 and waveform="PD" then marker1=1;
 data three; set three; proc means noprint; by insectno; var marker1; output out=outsas sum=NmbrPDS;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1955,7 +1955,7 @@ run;
 ****	Find the Number of E1e
 *********************************************************************;
 Data three; set one;
-data three; set three; if compress(upcase(waveform))="E1E" then marker1=1; else marker1=0;
+data three; set three; if waveform="E1E" then marker1=1; else marker1=0;
 data three; set three; proc means noprint; by insectno; var marker1; output out=outsas sum=NmbrE1e;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -1970,8 +1970,8 @@ run;
 ****	Find the Total duration of C
 *********************************************************************;
 Data three; set OnlyCNoPD;
-data three; set three; if compress(upcase(waveform))="C" then output;
-data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurC;
+data three; set three; Where waveform="C";
+Data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurC;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 run;
@@ -1985,8 +1985,8 @@ run;
 ****	Find the Total duration of E1e
 *********************************************************************;
 Data three; set one;
-data three; set three; if compress(upcase(waveform))="E1E" then output;
-data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE1e;
+data three; set three; Where waveform="E1E";
+Data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TtlDurE1e;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 run;
@@ -2000,7 +2000,7 @@ run;
 ****	Find the Total duration of non-phloematic phase
 *********************************************************************;
 Data three; set OnlyE1;
-data three; set three; if compress(upcase(waveform))ne "E1" and compress(upcase(waveform)) ne "E2" then output;
+data three; set three; Where waveform ne "E1" and waveform ne "E2";
 data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TotDurNnPhlPhs;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
@@ -2016,7 +2016,7 @@ run;
 ****	Find the Total duration of NP phase
 *********************************************************************;
 Data three; set one; 
-if compress(upcase(waveform))eq "NP" or compress(upcase(waveform)) eq "Z" then output;
+Where waveform eq "NP" or waveform eq "Z";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurNP;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -2032,7 +2032,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find the Total duration of PD phase
 *********************************************************************;
 Data three; set OnePD;
-if compress(upcase(waveform))eq "PD" then output;
+Where waveform eq "PD";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurPD;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -2049,18 +2049,18 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find the Total duration of PDL phase
 *********************************************************************;
 Data three; set one; 
-if compress(upcase(waveform))eq "PDL" then output;
+Where waveform eq "PDL";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurPD;
 data four; set outsas;
 Data three; set one; 
-if compress(upcase(waveform))eq "II2" then output;
+Where waveform eq "II2";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurPD2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data four; set four outsas; merge four outsas; by insectno;
 Data three; set one; 
-if compress(upcase(waveform))eq "PDII3" then output;
+Where waveform eq "PDII3";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurPD3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -2070,8 +2070,7 @@ data four; set four; if ttldurpd2="." then ttldurpd2=0;
 data four; set four; TtlDurPDL=sum(TtlDurPD, TtlDurPD2, TtlDurPD3);
 data four; set four; drop _Type_ _FREQ_ TtlDurPD TtlDurPD2 TtlDurPD3;
 data Ebert; set Ebert four; merge Ebert four; by insectno;
-proc datasets nodetails nolist; 
-delete four outsas three;
+proc delete lib=work data= four outsas three;
 *********************************************************************
 *  Finding the Total duration of PDL phase is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2082,7 +2081,7 @@ delete four outsas three;
 ****	Find the Total duration of PDS phase
 *********************************************************************;
 Data three; set One; 
-if compress(upcase(waveform))eq "PD" then output;
+Where waveform eq "PD";
 Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas sum=TtlDurPDS;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
@@ -2100,7 +2099,7 @@ if TtlDurPDS="." and TtlDurPD ne "." then TtlDurPDS=TtlDurPD;
 *********************************************************************;
 Data three; set one; 
 retain in0 marker1;
-w0=compress(upcase(waveform));
+w0=waveform;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
 If w0="C" then marker1=1;
 if w0="NP" or w0="Z" then marker1=0;
@@ -2118,8 +2117,8 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find the mean duration of NP
 *********************************************************************;
 Data three; set one; 
-if compress(upcase(waveform))="NP" or compress(upcase(waveform)) eq "Z" then output;
-data three; set three;
+Where waveform="NP" or waveform eq "Z";
+Data three; set three;
 proc means noprint; var instance dur; by insectno; output out=outsas sum=Ins1 dur1 max=InsM durM;
 data outsas; set outsas; MnDurNP=dur1/InsM;
 data outsas; set outsas; drop ins1 dur1 insm durm _FREQ_ _TYPE_;
@@ -2136,8 +2135,8 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 ****	Find the mean duration of C
 *********************************************************************;
 Data three; set OnlyCNoPD; 
-if compress(upcase(waveform))="C" then output;
-data three; set three;
+Where waveform="C";
+Data three; set three;
 proc means noprint; var instance dur; by insectno; output out=outsas sum=Ins1 dur1 max=InsM durM;
 data outsas; set outsas; MnDurC=dur1/InsM;
 data outsas; set outsas; drop ins1 dur1 insm durm _FREQ_ _TYPE_;
@@ -2154,7 +2153,7 @@ data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data three; set OnlySusE2; 
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E2" and dur>600 then marker1=1;
+if waveform="E2" and dur>600 then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three;
 proc means noprint; var sumend; by insectno; output out=outsas max=TmSusE2;
@@ -2165,7 +2164,7 @@ data outsas; set outsas outsas1; merge outsas outsas1; by insectno;
 TmFrstSusE2=TmSusE2;
 data outsas; set outsas; drop runtime TmSusE2 _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete outsas outsas1 four;
+proc delete lib=work data= outsas outsas1 four;
 run;
 *********************************************************************
 *  Finding the time to the first sustained E2 is finished.
@@ -2181,7 +2180,7 @@ run;
 Data three; set OnlySusE2; 
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E2" and dur>600 then marker1=1;
+if waveform="E2" and dur>600 then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three;
 proc means noprint; var sumend; by insectno; output out=outsas max=TmSusE2;
@@ -2194,7 +2193,7 @@ data three; set one; retain marker1;
 data three; set three;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="C" then marker1=1;
+if waveform="C" then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three;
@@ -2205,7 +2204,7 @@ data outsas; set outsas; TmFrstSusE2FrstPrb=TmfrstSusE2-Sumdur;
 data outsas; set outsas; if TmFrstSusE2FrstPrb<=0 then TmFrstSusE2FrstPrb=".";
 data outsas; set outsas; drop TmfrstSusE2 Sumdur;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas outsas1 outsas3 three;
+proc delete lib=work data= four outsas outsas1 outsas3 three;
 *********************************************************************
 *  Finding first sustained E2 from first probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2218,19 +2217,19 @@ proc datasets nodetails nolist; delete four outsas outsas1 outsas3 three;
 *********************************************************************;
 data three; set OnlySusE2;
 retain marker1;
-if compress(upcase(waveform))="C" then marker1=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker1=0;
+if waveform="C" then marker1=1;
+if waveform="NP" or waveform="Z" then marker1=0;
 Data three; set three;
 retain marker2;
-if compress(upcase(waveform))="E2" and dur>600 then marker2=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker2=0;
+if waveform="E2" and dur>600 then marker2=1;
+if waveform="NP" or waveform="Z" then marker2=0;
 data four; set three;
 proc sort; by inverter1;
 data four; set four;
 retain marker3 in0;
 if in0 ne insectno then do; in0=insectno; marker3=0; end;
 if marker2=1 then marker3=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker3=0;
+if waveform="NP" or waveform="Z" then marker3=0;
 data four; set four;
 proc sort; by line;
 data four; set four;
@@ -2240,14 +2239,14 @@ drop marker1 marker2 marker3 in0;
 data four; set four;
 retain marker1 in0;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E2" and dur>600 then marker1=1;
+if waveform="E2" and dur>600 then marker1=1;
 data four; set four;
 Where marker1=0;
 data four; set four;
 proc means noprint; var dur; by insectno; output out=outsas sum=TmFrstSusE2StrtPrb;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete three four outsas;
+proc delete lib=work data= three four outsas;
 *********************************************************************
 *  Finding Time to first sustaines E2 from start of probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2260,13 +2259,13 @@ proc datasets nodetails nolist; delete three four outsas;
 data three; set OnlyE2;
 retain marker1 in0;
 if in0 ne insectno then do; marker1=0; in0=insectno; end;
-if compress(upcase(waveform))="E2" then marker1=1;
+if waveform="E2" then marker1=1;
 data three; set three;
 Where marker1=0;
 proc means noprint; var sumend; by insectno; output out=outsas max=TmFrstE2StrtEPG;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-Proc datasets nodetails nolist; delete three outsas;
+proc delete lib=work data= three outsas;
 *********************************************************************
 *  Finding time to first E2 from start of EPG is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2279,7 +2278,7 @@ Proc datasets nodetails nolist; delete three outsas;
 data three; set OnlyE2;
 retain marker1 in0;
 if in0 ne insectno then do; marker1=0; in0=insectno; end;
-if compress(upcase(waveform))="E2" then marker1=1;
+if waveform="E2" then marker1=1;
 data three; set three;
 Where marker1=0;
 proc means noprint; var sumend; by insectno; output out=outsas max=result1;
@@ -2289,7 +2288,7 @@ data three; set one; retain marker1;
 data three; set three;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="C" then marker1=1;
+if waveform="C" then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three;
@@ -2301,7 +2300,7 @@ data outsas; set outsas outsas3; merge outsas outsas3; by insectno;
 data outsas; set outsas; TmFrstE2FrmFrstPrb=result1-Sumdur; drop result1 Sumdur _TYPE_ _FREQ_;
 data outsas; set outsas; if TmFrstE2FrmFrstPrb<=0 then TmFrstE2FrmFrstPrb=".";
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-Proc datasets nodetails nolist; delete three four outsas3 outsas;
+proc delete lib=work data= three four outsas3 outsas;
 *********************************************************************
 *  Finding time to first E2 from first probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2313,19 +2312,19 @@ Proc datasets nodetails nolist; delete three four outsas3 outsas;
 *********************************************************************;
 data three; set OnlyE2;
 retain marker1;
-if compress(upcase(waveform))="C" then marker1=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker1=0;
+if waveform="C" then marker1=1;
+if waveform="NP" or waveform="Z" then marker1=0;
 Data three; set three;
 retain marker2;
-if compress(upcase(waveform))="E2" then marker2=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker2=0;
+if waveform="E2" then marker2=1;
+if waveform="NP" or waveform="Z" then marker2=0;
 data four; set three;
 proc sort; by inverter1;
 data four; set four;
 retain marker3 in0;
 if in0 ne insectno then do; in0=insectno; marker3=0; end;
 if marker2=1 then marker3=1;
-if compress(upcase(waveform))="NP" or compress(upcase(waveform))="Z" then marker3=0;
+if waveform="NP" or waveform="Z" then marker3=0;
 data four; set four;
 proc sort; by line;
 data four; set four;
@@ -2335,14 +2334,14 @@ drop marker1 marker2 marker3 in0;
 data four; set four;
 retain marker1 in0;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E2" then marker1=1;
+if waveform="E2" then marker1=1;
 data four; set four;
 Where marker1=0;
 data four; set four;
 proc means noprint; var dur; by insectno; output out=outsas sum=TmFrstE2FrmPrbStrt;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete three four outsas;
+proc delete lib=work data= three four outsas;
 *********************************************************************
 *  Finding Time to first E2 from start of probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -2353,8 +2352,8 @@ proc datasets nodetails nolist; delete three four outsas;
 ***********      Duration of NP by hour
 *********************************************************************;
 Data three; set one;
-if compress(upcase(waveform))="NP" then output;
-data four; set three;
+Where waveform="NP";
+Data four; set three;
 retain ttldur in0 marker4;
 if in0 ne insectno then do; in0=insectno; ttldur=0; marker4=0; end;
 if sumend<=3600 then do; ttldur=sum(ttldur, dur); marker4=1; end;
@@ -2365,7 +2364,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2379,7 +2378,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2393,7 +2392,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2407,7 +2406,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp4;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2421,7 +2420,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp5;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2435,7 +2434,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 /*milan - add up to 12h below*/;
 
 data four; set three;
@@ -2450,7 +2449,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp7;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2464,7 +2463,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp8;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2478,7 +2477,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp9;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2492,7 +2491,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp10;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2506,7 +2505,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp11;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 marker4;
@@ -2520,7 +2519,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurNp12;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 Data ebert; set ebert;
 if TtlDurNP1="." then TtlDurNP1=0;
@@ -2547,8 +2546,8 @@ Run;
 ***********      Number of PDS by hour
 *********************************************************************;
 Data three; set one;
-if compress(upcase(waveform))="PDS" or compress(upcase(waveform))="PD" then output;
-data four; set three;
+Where waveform="PDS" or waveform="PD";
+Data four; set three;
 retain ttl1 in0 marker4;
 if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
 if sumend<=3600 then do; ttl1=ttl1+1; marker4=1; end;
@@ -2558,7 +2557,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2571,7 +2570,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2584,7 +2583,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2597,7 +2596,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS4;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2610,7 +2609,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS5;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2623,7 +2622,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2636,7 +2635,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS7;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2649,7 +2648,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS8;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2662,7 +2661,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS9;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2675,7 +2674,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS10;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2688,7 +2687,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS11;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2701,7 +2700,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPDS12;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 
 Data ebert; set ebert;
@@ -2731,8 +2730,8 @@ run;
 ***********      Average Duration of PDS by hour
 *********************************************************************;
 Data three; set one;
-if compress(upcase(waveform))="PDS" or compress(upcase(waveform))="PD" then output;
-data four; set three;
+Where waveform="PDS" or waveform="PD";
+Data four; set three;
 retain ttldur in0 ttl1;
 if in0 ne insectno then do; in0=insectno; ttldur=0; ttl1=0; end;
 if sumend<=3600 then do; ttldur=sum(ttldur, dur); ttl1=ttl1+1; marker4=1; end;
@@ -2741,7 +2740,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS1="."; else MnDurPdS1=MnDurPdS1/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2753,7 +2752,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS2="."; else MnDurPdS2=MnDurPdS2/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2765,7 +2764,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS3="."; else MnDurPdS3=MnDurPdS3/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2777,7 +2776,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS4="."; else MnDurPdS4=MnDurPdS4/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2789,7 +2788,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS5="."; else MnDurPdS5=MnDurPdS5/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2801,7 +2800,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS6="."; else MnDurPdS6=MnDurPdS6/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2813,7 +2812,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS7="."; else MnDurPdS7=MnDurPdS7/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2825,7 +2824,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS8="."; else MnDurPdS8=MnDurPdS8/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2837,7 +2836,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS9="."; else MnDurPdS9=MnDurPdS9/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2849,7 +2848,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS10="."; else MnDurPdS10=MnDurPdS10/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2861,7 +2860,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS11="."; else MnDurPdS11=MnDurPdS11/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttldur in0 ttl1 marker4;
@@ -2873,7 +2872,7 @@ proc means noprint; var ttldur ttl1; by insectno; output out=outsas max=MnDurPdS
 data outsas; set outsas; if attl1=0 then MnDurPdS12="."; else MnDurPdS12=MnDurPdS12/attl1;
 data outsas; set outsas; drop _TYPE_ _FREQ_ attl1;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 /*Data ebert; set ebert;
 if MnDurPDS1="." then MnDurPDS1=0;
@@ -2901,18 +2900,18 @@ run*/;
 ***********      Number of F by hour
 *********************************************************************;
 Data three; set one;
-if compress(upcase(waveform))="F" then output;
-data four; set three;
+Where waveform="F";
+Data four; set three;
 retain ttl1 in0 marker4;
 if in0 ne insectno then do; in0=insectno; ttl1=0; marker4=0; end;
-if sumend<=3600 then do; ttl1=ttl1+1;  marker4=1; end;
+if sumend<=3600 then do; ttl1=ttl1+1; marker4=1; end;
 if sumstart<=3600 and sumend>3600 and marker4=0 then ttl1=ttl1+1;
 marker4=0;
 data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2925,7 +2924,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2938,7 +2937,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2951,7 +2950,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF4;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2964,7 +2963,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF5;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2977,7 +2976,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -2990,7 +2989,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF7;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -3003,7 +3002,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF8;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -3016,7 +3015,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF9;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -3029,7 +3028,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF10;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -3042,7 +3041,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF11;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttl1 in0 marker4;
@@ -3055,7 +3054,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumF12;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 
 Data ebert; set ebert;
@@ -3086,8 +3085,8 @@ run;
 ***********      Duration of F by hour
 *********************************************************************;
 Data three; set one;
-if compress(upcase(waveform))="F" then output;
-data four; set three;
+Where waveform="F";
+Data four; set three;
 retain ttldur in0 mark4;
 if in0 ne insectno then do; in0=insectno; ttldur=0; mark4=0; end;
 if sumend<=3600 then do; ttldur=sum(ttldur, dur); mark4=1; end;
@@ -3097,7 +3096,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3110,7 +3109,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3123,7 +3122,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3136,7 +3135,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF4;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3149,7 +3148,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF5;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3162,7 +3161,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3175,7 +3174,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF7;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3188,7 +3187,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF8;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3201,7 +3200,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF9;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3214,7 +3213,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF10;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3227,7 +3226,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF11;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 data four; set three;
 retain ttldur in0 mark4;
@@ -3240,7 +3239,7 @@ data four; set four;
 proc means noprint; var ttldur; by insectno; output out=outsas max=TtlDurF12;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four;
+proc delete lib=work data= four;
 
 Data ebert; set ebert;
 if TtlDurF1="." then TtlDurF1=0;
@@ -3268,7 +3267,7 @@ run;
 *********************************************************************;
 Data three; set one;
 retain marker1 marker2 in0;
-w1=compress(upcase(waveform));
+w1=waveform;
 if in0 ne insectno then do; in0=insectno; marker1=0; marker2=0; end;
 if w1="C" then marker1=1;
 if w1="NP" or w1="Z" then marker2=1; else marker2=0;
@@ -3302,7 +3301,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3315,7 +3314,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3328,7 +3327,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3341,7 +3340,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb4;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3354,7 +3353,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb5;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3367,7 +3366,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb6;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3380,7 +3379,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb7;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3393,7 +3392,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb8;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3406,7 +3405,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb9;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3419,7 +3418,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb10;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3432,7 +3431,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb11;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 data four; set three;
 retain ttl1 in0 mark4;
@@ -3445,7 +3444,7 @@ data four; set four;
 proc means noprint; var ttl1; by insectno; output out=outsas max=NumPrb12;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete four outsas;
+proc delete lib=work data= four outsas;
 
 Data ebert; set ebert;
 if NumPrb1="." then NumPrb1=0;
@@ -3475,8 +3474,8 @@ run;
 data three; set onepd;
 retain in0 marker1 marker2;
 if in0 ne insectno then do; in0=insectno; marker1=0; marker2=0; end;
-if compress(upcase(waveform))= 'C' and marker2=0 then do; marker1=1; marker2=1; end;
-If compress(upcase(waveform))= 'PD' then marker1=0;
+if waveform= 'C' and marker2=0 then do; marker1=1; marker2=1; end;
+If waveform= 'PD' then marker1=0;
 data three; set three;
 Where marker1=1;
 data three; set three;
@@ -3496,7 +3495,7 @@ data three; set onepd;
 data three; set three;
 retain in0 marker2;
 if in0 ne insectno then do in0=insectno; marker2=0; end;
-if compress(upcase(waveform))="PD"  then marker2=marker2+1;
+if waveform="PD"  then marker2=marker2+1;
 Data three; set three; Where marker2>0;
 Data three; set three; drop in0 marker2;
 data three; set three;
@@ -3504,14 +3503,14 @@ retain in0 marker1;
 if in0 ne insectno then do;
 	in0=insectno; marker1=0;
 	end;
-if compress(upcase(waveform)) = "NP" then marker1=1;
+if waveform = "NP" then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three; proc sort; by inverter1;
 data three; set three;
 retain in0 marker2;
 if in0 ne insectno then do in0=insectno; marker2=0; end;
-if compress(upcase(waveform))="PD"  then marker2=marker2+1;
+if waveform="PD"  then marker2=marker2+1;
 data three; set three; proc sort; by line;
 
 data three; set three; drop in0; proc sort; by line;
@@ -3523,7 +3522,7 @@ data three; set three;
 proc means noprint; by insectno; var holder1; output out=outsas42 max=TmEndLstPDEndPrb;
 Data outsas42; set outsas42; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas42; merge Ebert outsas42; by insectno;
-proc datasets nodetails nolist; delete three outsas42;
+proc delete lib=work data= three outsas42;
 *********************************************************************
 *  Finding Time from end of last pd to end of probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3536,7 +3535,7 @@ proc datasets nodetails nolist; delete three outsas42;
 data three; set one;
 retain in0 marker1;
 if in0 ne insectno then do; marker1=0; in0=insectno; end;
-if compress(upcase(waveform))= 'II2' then marker1=1;
+if waveform= 'II2' then marker1=1;
 data three; set three; drop in0;
 data three; set three; proc sort; by inverter1;
 data three; set three;
@@ -3546,28 +3545,28 @@ if marker1=1 then marker2=1;
 data three; set three; Where marker2=1;
 data three; set three; proc sort; by line;
 data three; set three;
-if compress(upcase(waveform))='PD' or compress(upcase(waveform))='II2' or compress(upcase(waveform))='II3' then output;
-data Four; set three;
-if compress(upcase(waveform))='PD' then output;
+Where waveform='PD' or waveform='II2' or waveform='II3';
+Data Four; set three;
+Where waveform='PD';
 proc means noprint;
 var dur; by insectno; output out=outsas sum=SumPDII1;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 
 data Four; set three;
-if compress(upcase(waveform))='II2' then output;
+Where waveform='II2';
 proc means noprint;
 var dur; by insectno; output out=outsas sum=SumPDII2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 
 data Four; set three;
-if compress(upcase(waveform))='II3' then output;
+Where waveform='II3';
 proc means noprint;
 var dur; by insectno; output out=outsas sum=SumPDII3;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete Four outsas three;
+proc delete lib=work data= Four outsas three;
 *********************************************************************
 *  Finding duration of PD subphases is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3581,27 +3580,27 @@ proc datasets nolist nodetails; delete Four outsas three;
 *********************************************************************;
 Data three; set onlysusE2;
 proc sort; by inverter1;
-data three; set three;*remove all events after the last sustained E2 ;
+data three; set three;  *remove all events after the last sustained E2 ;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E2" and dur>600 then marker1=1;
+if waveform="E2" and dur>600 then marker1=1;
 Data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 
 Data three; set three; *remove all events before the last pd;
-if compress(upcase(waveform))='PD' or compress(upcase(waveform))='II2' or compress(upcase(waveform))='PDS'
-   or compress(upcase(waveform))='II3' or compress(upcase(waveform))='PDL' then waveform='PD';
+if waveform='PD' or waveform='II2' or waveform='PDS'
+   or waveform='II3' or waveform='PDL' then waveform='PD';
 data three; set three;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="PD" then marker1=1;
+if waveform="PD" then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 
 data three; set three; *remove the E1 before sustained E2 and remove the sustained E2;
 retain in0 marker1;
 if in0 ne insectno then do; in0=insectno; marker1=0; end;
-if compress(upcase(waveform))="E1" then marker1=1;
+if waveform="E1" then marker1=1;
 Data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -3612,7 +3611,7 @@ data three; set three; proc sort; by line;
 data three; set three; proc means noprint; by insectno; var dur; output out=outsas sum=TmEndPDBegE1FllwdSusE2;
 Data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 run;
 *********************************************************************
 *  Finding Tm End of last pd to beginning of E1 followed sustained E2 is finished.
@@ -3626,10 +3625,10 @@ run;
 *********************************************************************;
 Data three; set onepd;
 marker1=0;
-	if compress(upcase(waveform))='PD' then marker1=1;
-	if compress(upcase(waveform))='PDL' then marker1=1;
-	if compress(upcase(waveform))='II2' then marker1=1;
-	if compress(upcase(waveform))='II3' then marker1=1;
+	if waveform='PD' then marker1=1;
+	if waveform='PDL' then marker1=1;
+	if waveform='II2' then marker1=1;
+	if waveform='II3' then marker1=1;
 data three; set three;
 proc sort; by inverter1;
 data three; set three;
@@ -3643,7 +3642,7 @@ data three; set three; proc sort; by line;
 proc means noprint; var dur; by insectno; output out=outsas sum=TmLstPdEndRcrd;
 data outsas; set outsas; Drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 *********************************************************************
 *  Finding Time from the end of the last pd to the end of EPG is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3697,12 +3696,12 @@ data Ebert; set Ebert three; merge Ebert three; by insectno;
 ***** Duration of longest E2
 *********************************************************************;
 Data three; set OnlyE2;
-	Where compress(upcase(waveform))='E2';
+	Where waveform='E2';
 data three; set three; proc means noprint;
 	var dur; by insectno; output out=outsas max=maxE2;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nolist nodetails; delete three outsas;
+proc delete lib=work data= three outsas;
 *********************************************************************
 *  Finding Duration of longest E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3715,24 +3714,24 @@ proc datasets nolist nodetails; delete three outsas;
 Data three; set onlysuse2;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='E2' and dur>600 then marker1=1;
+	if waveform='E2' and dur>600 then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 Data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))="Z" then marker1=1;
+	if waveform='NP' or waveform="Z" then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))ne'NP' and compress(upcase(waveform)) ne 'Z' then marker1=1;
+	if waveform ne'NP' and waveform ne 'Z' then marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; DurNpFllwFrstSusE2=dur;
 data three; set three; drop dur waveform line sumstart sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 *********************************************************************
 *  Finding Find duration of NP following first sustained E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3766,19 +3765,19 @@ data three; set three; drop in0;
 Data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='E2' and dur>600 then marker1=1;
+	if waveform='E2' and dur>600 then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 Data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))="Z" then marker1=1;
+	if waveform='NP' or waveform="Z" then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform))ne'NP' and compress(upcase(waveform)) ne 'Z' then marker1=1;
+	if waveform ne'NP' and waveform ne 'Z' then marker1=1;
 data three; set three; Where marker1=0;
 /*data three; set three; 
 	if sumend=RecDur then DurTrmNpFllwFrstSusE2=.; else DurTrmNpFllwFrstSusE2='.'; *NOTE: This variable is set to missing in all cases;
@@ -3786,7 +3785,7 @@ data three; set three; Where marker1=0;
 */;
 data three; set three; drop dur line sumstart RecDur sumend instance inverter1 in0 marker1;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete three;
+proc delete lib=work data= three;
 *********************************************************************
 *  Finding Duration of NP just after sus E2 given NP artificially terminated event is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3797,12 +3796,12 @@ Proc datasets nolist nodetails; delete three;
 ****  Percent probing spent in C
 *********************************************************************;
 Data three; set onlycnopd;
-	if compress(upcase(waveform)) ne 'NP' and compress(upcase(waveform)) ne 'Z' then output;
+	Where waveform ne 'NP' and waveform ne 'Z';
 data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='C' or compress(upcase(waveform)) ='PD' then output;
-data three; set three;
+	Where waveform='C' or waveform ='PD';
+Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
@@ -3810,7 +3809,7 @@ data outsas1; set outsas1;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
 data Ebert; set Ebert; if PrcntPrbC='.' then PrcntPrbC=0;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 *********************************************************************
 *  Finding Percent probing spent in C is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3822,12 +3821,12 @@ proc datasets nolist nodetails; delete outsas1 outsas2 three;
 ****  Percent probing spent in E1
 *********************************************************************;
 Data three; set OnlyE1;
-	if compress(upcase(waveform)) ne 'NP' and compress(upcase(waveform)) ne 'Z' then output;
+	Where waveform ne 'NP' and waveform ne 'Z';
 data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='E1' then output;
-data three; set three;
+	Where waveform='E1';
+Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
@@ -3835,7 +3834,7 @@ data outsas1; set outsas1;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
 data Ebert; set Ebert; if PrcntPrbE1='.' then PrcntPrbE1=0;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 *********************************************************************
 *  Finding Percent probing spent in E1 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -3846,19 +3845,19 @@ proc datasets nolist nodetails; delete outsas1 outsas2 three;
 ****  Percent probing spent in E2
 *********************************************************************;
 Data three; set one;
-	if compress(upcase(waveform)) ne 'NP' and compress(upcase(waveform)) ne 'Z' then output;
+	Where waveform ne 'NP' and waveform ne 'Z';
 data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='E2' then output;
-data three; set three;
+	Where waveform='E2';
+Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
 	PrcntPrbE2=100*sumC/sumprb;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 data Ebert; set Ebert; if PrcntPrbE2='.' then PrcntPrbE2=0;
 *********************************************************************
 *  Finding Percent probing spent in E2 is finished.
@@ -3870,19 +3869,19 @@ data Ebert; set Ebert; if PrcntPrbE2='.' then PrcntPrbE2=0;
 ****  Percent probing spent in F                          ***********
 *********************************************************************;
 Data three; set one;
-	if compress(upcase(waveform)) ne 'NP' and compress(upcase(waveform)) ne 'Z' then output;
+	Where waveform ne 'NP' and waveform ne 'Z';
 data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='F' then output;
-data three; set three;
+	Where waveform='F';
+Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
 	PrcntPrbF=100*sumC/sumprb;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 data Ebert; set Ebert; if PrcntPrbF='.' then PrcntPrbF=0;
 *********************************************************************
 *  Finding Percent probing spent in F is finished.
@@ -3894,19 +3893,19 @@ data Ebert; set Ebert; if PrcntPrbF='.' then PrcntPrbF=0;
 ****  Percent probing spent in G                          ***********
 *********************************************************************;
 Data three; set one;
-	if compress(upcase(waveform)) ne 'NP' and compress(upcase(waveform)) ne 'Z' then output;
+	Where waveform ne 'NP' and waveform ne 'Z';
 data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='G' then output;
-data three; set three;
+	Where waveform='G';
+Data three; set three;
 proc means noprint; var dur; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
 	PrcntPrbG=100*sumC/sumprb;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 data Ebert; set Ebert; if PrcntPrbG='.' then PrcntPrbG=0;
 *******************************************************************
 *  Finding Percent probing spent in G is finished.
@@ -3919,12 +3918,12 @@ data Ebert; set Ebert; if PrcntPrbG='.' then PrcntPrbG=0;
 ****       Percent E2 spent in Sustained E2             ***********
 *******************************************************************;
 Data three; set OnlyE2;
-	if compress(upcase(waveform)) = 'E2' then marker1=1; else marker1=0;
+	if waveform = 'E2' then marker1=1; else marker1=0;
 data three; set three;
 proc means noprint; var marker1; by insectno; output out=outsas1 sum=SumPrb;
 data three; set three;
-	if compress(upcase(waveform))='E2' and dur>600 then output;
-data three; set three;
+	Where waveform='E2' and dur>600;
+Data three; set three;
 proc means noprint; var marker1; by insectno; output out=outsas2 sum=sumC;
 data outsas1; set outsas1 outsas2; merge outsas1 outsas2; by insectno;
 data outsas1; set outsas1;
@@ -3932,7 +3931,7 @@ data outsas1; set outsas1;
 data outsas1; set outsas1; drop _TYPE_ _FREQ_ SumC SumPrb;
 data outsas1; set outsas1; if PrcntE2SusE2='.' then PrcntE2SusE2=0;
 data Ebert; set Ebert outsas1; merge Ebert outsas1; by insectno;
-proc datasets nolist nodetails; delete outsas1 outsas2 three;
+proc delete lib=work data= outsas1 outsas2 three;
 Run;
 *********************************************************************
 *  Finding Percent E2 spent in Sustained E2 is finished.
@@ -3983,7 +3982,7 @@ Run;
 Data Ebert; Set Ebert; Drop waveform;
 /*
 Milan: Moved up.
-Data Ebert; Set Ebert; trt=substr(insectno,1,1);*recover treatment designations*;
+Data Ebert; Set Ebert; trt=substr(insectno,1,1);  *recover treatment designations*;
 */;
 Data Ebert; Set Ebert;
 If NmbrShrtC="." then NmbrShrtC="0";
@@ -4131,19 +4130,19 @@ if TtlDurF=0 then TtlDurF=".";
 *****************************************************************************
 *****************************************************************************
 *****************************************************************************;
-proc datasets nodetails nolist; delete three;
+proc delete lib=work data= three;
 *********************************************************************;
 *********************************************************************
 ****   New Data set, OnlyPrbs. This converts all recordings into  ***
 ****      probe versus non-probe.                                 ***
 *********************************************************************;
 Data OnlyPrbs; set one;
-	if compress(upcase(waveform))='NP' then waveform='NP';
+	if waveform='NP' then waveform='NP';
 		else waveform='C';
 Data OnlyPrbs; Set OnlyPrbs; proc sort; by line;
 Data OnlyPrbs; Set OnlyPrbs;
 	retain w0 w1 in0 marker1;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; in0=insectno; marker1=0;
 	end;
@@ -4158,7 +4157,7 @@ Data onePrbSAS; set onePrbSAS; dur=dursum;
 data OnlyPrbs; set OnlyPrbs; drop dur line sumstart sumend instance inverter1 w1 w0 in0;
 Data OnlyPrbs; Set OnlyPrbs;
 	retain w0 w1 in0 time1;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	  w0='  '; in0=insectno; time1=0;
 	end;
@@ -4166,7 +4165,7 @@ Data OnlyPrbs; Set OnlyPrbs;
 	else If w1 ne w0 then output;
 	w0=w1;
 data onePrbSAS; set onePrbSAS OnlyPrbs; merge onePrbSAS OnlyPrbs; by insectno marker1;
-data oneZZ; set onePrbSAS;  Var1=insectno; Var2=waveform; Var3=dur;
+data oneZZ; set onePrbSAS; Var1=insectno; Var2=waveform; Var3=dur;
 data oneZZ; set oneZZ; drop insectno marker1 _TYPE_ _Freq_ dursum dur waveform;
 Data oneZZ; set oneZZ; waveform=Var2; insectno=Var1; dur=Var3;
 data oneZZ; set oneZZ; drop Var1 var2 var3;
@@ -4190,7 +4189,7 @@ data OnlyPrbs;set OnlyPrbs; by insectno waveform;
 data OnlyPrbs; set OnlyPrbs; proc sort; by line;
 data OnlyPrbs; set OnlyPrbs; inverter1=50000-line;
 data OnlyPrbs; set OnlyPrbs; drop time1;
-proc datasets nodetails nolist; delete oneZZ onePrbSAS;
+proc delete lib=work data= oneZZ onePrbSAS;
 run;
 *********************************************************************
 **************************   Method end   ***************************
@@ -4205,7 +4204,7 @@ Data three; set OnlyG;
 Data three; set three; Proc sort; by insectno line;
 Data three; set three;
 	retain in0 marker1 marker2;
-	w1=Compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 	 marker1=0; Marker2=0;
 	 in0=insectno;
@@ -4251,16 +4250,16 @@ Data three; set OnlyG;
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform)) eq 'G' then marker1=1;
+	if waveform eq 'G' then marker1=1;
 Data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 Data three; set three; proc sort; by insectno inverter1;
 data three; set three;
 	retain in0 marker1;
 	if in0 ne insectno then do; in0=insectno; marker1=0; end;
-	if compress(upcase(waveform)) eq 'Z' or compress(upcase(waveform)) eq 'NP' then marker1=1;
+	if waveform eq 'Z' or waveform eq 'NP' then marker1=1;
 Data three; set three; Where marker1=1;
-Data three; set three; if compress(upcase(waveform)) eq 'Z' or compress(upcase(waveform)) eq 'NP' then output;
+Data three; set three; Where waveform eq 'Z' or waveform eq 'NP';
 Data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno line;
 data three; set three; 
@@ -4292,7 +4291,7 @@ data Ebert; set Ebert three; merge Ebert three; by insectno;
 ******************************************************************;
 Data three; set OnlyG; 								*mark each probe.;
 	retain in0 marker1;
-	w1=compress(upcase(waveform));
+	w1=waveform;
 	if insectno ne in0 then do;
 		in0=insectno; marker1=0;
 	end;
@@ -4304,7 +4303,7 @@ Data three; set three; 									*counting the number of probes;
 	if insectno ne in0 then do;
 		in0=insectno; marker2=0; holder1=0;
 	end;
-	if holder1 ne marker1  and compress(upcase(waveform))='C' then do;
+	if holder1 ne marker1  and waveform='C' then do;
 		marker2=marker2+1;
 	end;
 	holder1=marker1;
@@ -4316,7 +4315,7 @@ Data three; set three;								*counting G in each probe;
 	end;
 	if marker1=1 and holder1=0 then marker3=1;
 	if marker1=0 and holder1=1 then marker3=0;
-	if marker3=1 and compress(upcase(waveform))='G' then marker4=marker4+1;
+	if marker3=1 and waveform='G' then marker4=marker4+1;
 	if marker3=0 then marker4=0;
 	holder1=marker1;
 Data three; set three; drop in0 holder1 marker3;
@@ -4335,7 +4334,7 @@ data three; set three; proc sort; by insectno line;
 data three; set three; proc means noprint; var marker4; by insectno; output out=outsas mean=meanNGPrb;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
-proc datasets nodetails nolist; delete outsas three;
+proc delete lib=work data= outsas three;
 ******************************************************************
 *  Finding Average number of G per probe is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXXXXXXX*
@@ -4350,7 +4349,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='G' then  marker1=1;
+	if waveform='G' then  marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -4358,7 +4357,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='C' then marker1=1;
+	if waveform='C' then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three;
@@ -4394,7 +4393,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='G' then  marker1=1;
+	if waveform='G' then  marker1=1;
 data three; set three; Where marker1=0;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -4402,7 +4401,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='C' then marker1=1;
+	if waveform='C' then marker1=1;
 Data three; set three; Where marker1=1;
 Data three; set three; drop in0 marker1;
 data three; set three; proc sort; by insectno inverter1;
@@ -4411,7 +4410,7 @@ data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='Z' or compress(upcase(waveform))='NP' then marker1=1;
+	if waveform='Z' or waveform='NP' then marker1=1;
 data three; set three; proc sort; by line;
 data three; set three; Where marker1=0;
 Data three; set three; drop in0 marker1;
@@ -4447,7 +4446,7 @@ Data three; set OnlyG;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='G' then marker1=1;
+	if waveform='G' then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 
@@ -4457,19 +4456,19 @@ data three; set three;
 		in0=insectno; marker2=0; delay1=1;
 	end;
 	if delay1=0 then do;
-		if compress(upcase(waveform))='Z' then marker2=marker2+1;
-		if compress(upcase(waveform))='NP' then marker2=marker2+1;
+		if waveform='Z' then marker2=marker2+1;
+		if waveform='NP' then marker2=marker2+1;
 		 
 	end;
 	delay1=0;
-data three; set three; if compress(upcase(waveform))='C' then output;
-data three; set three; proc means noprint;
+data three; set three; Where waveform='C';
+Data three; set three; proc means noprint;
 	by insectno; var marker2; output out=outsas max=NumPrbsAftrFrstG;
 data outsas; set outsas; if NumPrbsAftrFrstG='.' then NumPrbsAftrFrstG=0;
 data outsas; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas; merge Ebert outsas; by insectno;
 Data Ebert; set Ebert; if NumPrbsAftrFrstG='.' then NumPrbsAftrFrstG=0;
-proc datasets nodetails nolist; delete three outsas;
+proc delete lib=work data= three outsas;
 run;
 ******************************************************************
 *  Finding Number of probes after first G is finished.
@@ -4485,7 +4484,7 @@ Data three; set OnlyG;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='G' then marker1=1;
+	if waveform='G' then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 
@@ -4494,7 +4493,7 @@ Data three; set three;
 	if in0 ne insectno then do;
 		in0=insectno; marker1=0;
 	end;
-	if compress(upcase(waveform))='NP' or compress(upcase(waveform))="Z" then marker1=1;
+	if waveform='NP' or waveform="Z" then marker1=1;
 data three; set three; Where marker1=1;
 data three; set three; drop in0 marker1;
 data three; set three;
@@ -4503,12 +4502,12 @@ data three; set three;
 		in0=insectno; marker2=1; delay1=1;
 	end;
 	if delay1=0 then do;
-		if compress(upcase(waveform))='Z' then marker2=marker2+1;
-		if compress(upcase(waveform))='NP' then marker2=marker2+1;
+		if waveform='Z' then marker2=marker2+1;
+		if waveform='NP' then marker2=marker2+1;
 		 
 	end;
 	delay1=0;
-Data three; set three; if compress(upcase(waveform)) ne "Z" and compress(upcase(waveform)) ne "NP" then waveform="PRB";
+Data three; set three; if waveform ne "Z" and waveform ne "NP" then waveform="PRB";
 data three; set three; 
   proc sort; by insectno marker2 waveform;
   proc means noprint; by insectno marker2 waveform; var dur; output out=outsas2 sum=sdur;
@@ -4523,7 +4522,7 @@ Data outsas2; set outsas2;
 data outsas4; set outsas4; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert outsas4; merge Ebert outsas4; by insectno;
 Data Ebert; set Ebert; if NmbrShrtPrbAftrFrstG='.' then NmbrShrtPrbAftrFrstG=0;
-proc datasets nolist nodetails; delete three outsas4 outsas2;
+proc delete lib=work data= three outsas4 outsas2;
 run;
 ******************************************************************
 *  Finding Number of probes <3min after first G is finished.
@@ -4566,11 +4565,11 @@ run;
 ****       Mean Deviation of C
 *********************************************************************;
 Data three; set One;
-data three; set three; if compress(upcase(waveform))='C' then output;
+data three; set three; Where waveform='C';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdC;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of C is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4581,11 +4580,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ****       Mean Deviation of F
 *********************************************************************;
 Data three; set OnlyF;
-data three; set three; if compress(upcase(waveform))='F' then output;
+data three; set three; Where waveform='F';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdF;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of D is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4596,11 +4595,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ****       Mean Deviation of G
 *********************************************************************;
 Data three; set OnlyG;
-data three; set three; if compress(upcase(waveform))='G' then output;
+data three; set three; Where waveform='G';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdG;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of G is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4611,11 +4610,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ****       Mean Deviation of E1
 *********************************************************************;
 Data three; set OnlyE1;
-data three; set three; if compress(upcase(waveform))='E1' then output;
+data three; set three; Where waveform='E1';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdE1;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of E1 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4626,11 +4625,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ****       Mean Deviation of E2
 *********************************************************************;
 Data three; set OnlyE2;
-data three; set three; Where compress(upcase(waveform))='E2';
+data three; set three; Where waveform='E2';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdE2;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of E2 is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4641,11 +4640,11 @@ Proc datasets nolist nodetails; delete oned outsas three;
 ****       Mean Deviation of NP
 *********************************************************************;
 Data three; set One;
-data three; set three; Where compress(upcase(waveform))='NP';
+data three; set three; Where waveform='NP';
 Data three; set three; proc means noprint; by insectno; var dur; output out=outsas stddev=sdNP;
 data three; set outsas; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete oned outsas three;
+proc delete lib=work data= oned outsas three;
 *********************************************************************
 *  Finding Mean deviation of NP is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -4662,7 +4661,7 @@ proc means noprint; by  insectno; var dur; output out=Prbsout mean=MnPrbs stddev
 
 data three; set Prbsout; drop _TYPE_ _FREQ_;
 data Ebert; set Ebert three; merge Ebert three; by insectno;
-Proc datasets nolist nodetails; delete three OnlyPrbsC Prbsout;
+proc delete lib=work data= three OnlyPrbsC Prbsout;
 *********************************************************************
 *  Finding Mean deviation of Probes is finished.
 * XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX     END      XXXXXXXXXXXXXXXXXXXX*
@@ -5088,7 +5087,7 @@ Data Ebert; Set Ebert;
 run;
 
 *Cleanup;
-proc datasets lib=work nolist; delete BoxCoxOut _cntnts_ VarNames;
+proc delete lib=work data= BoxCoxOut _cntnts_ VarNames;
 Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; drop IDNew; run; *drop IDNew, and also revert TtlPrbTm back to normal so the means are correct;
 Data BoxCoxTrans; Set BoxCoxTrans; drop IDNew TIDNew; run;
 
@@ -5130,7 +5129,7 @@ ods output close;
 *ods trace off;
 
 *Cleanup;
-proc datasets lib=work nolist; delete BoxCoxTransLong; run;
+proc delete lib=work data= BoxCoxTransLong; run;
 
 *Save tukey grouping in a table and clean it up;
 Data Groups; set Groups;
@@ -5154,7 +5153,7 @@ proc sql;
  create table trtMeansLong (drop= _TYPE_ _FREQ_ Transform maxdur) as select *,  _STAT_ as column from trtMeans;
 quit;
 *Delete trtMeans, not needed anymore;
-proc datasets lib=work nolist; delete trtMeans;
+proc delete lib=work data= trtMeans;
 proc transpose data=trtMeansLong out=trtMeansLong; by trt; id column; idlabel column;
 run;
 data trtMeansLong;
@@ -5172,7 +5171,7 @@ merge trtMeansLong Groups; by Parameter trt;
 run;
 
 *delete unncecessary datasets ("unncecessary" may vary for different use cases);
-proc datasets lib=work nolist; delete trtMeansLong Groups;
+proc delete lib=work data= trtMeansLong Groups;
 
 *export the Final table that combines untransformed means and Tukey grouping in one CSV file;
 *Name is given autmatically;
