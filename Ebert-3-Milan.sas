@@ -5043,16 +5043,11 @@ data Ebert;
 run;
 *removing missing and all 0 variables finished!;
 
-*invert variables that were too big.;
-*This may not be neccessary in all cases;
+*invert variables that are too big. This may not be neccessary in all cases;
 *Note: it is possible to use maxdur instead of 43200;
 data ebert; set ebert;
 TtlPrbTm = 43200 - TtlPrbTm; 
 run;
-*Following two lines control BoxCox transformation output;
-
-ods exclude all;
-ods graphics off;
 
 *Transpose Ebert to Long format and sort so BY statement can be used;
 Proc sort data=work.Ebert out=EbertLong (drop= maxdur); by insectno;
@@ -5060,39 +5055,44 @@ run;
 proc transpose data=EbertLong out=EbertLong NAME = Parameter LABEL = ParameterLabel ;
   by insectno trt transform;
 run;
-proc sort data=EbertLong; by Parameter;
-
+proc sort data=EbertLong out=EbertLong(rename=(COL1=observations)); label Parameter='Parameter'; by Parameter;
+run;
+*Following two lines control BoxCox transformation output;
+ods exclude none;
+ods graphics on;
 *Transform all variables using BoxCox transformation;
-proc transreg nozeroconstant data=EbertLong nomiss; by Parameter; id insectno trt;
-model boxcox(COL1/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxTransLong;
-Proc delete lib=work data=EbertLong;
-*Sort as required for PROC GLIMMIX BY statement;
-proc sort data=BoxCoxTransLong out=BoxCoxTransLong(where=(Untransformed is NOT MISSING) keep=Parameter trt insectno COL1 TCOL1 rename=(COL1=untransformed TCOL1=transformed)); label Parameter='Parameter'; by Parameter;
+ods output Details=Details;
+proc transreg detail nozeroconstant data=EbertLong nomiss; by Parameter; id insectno trt;
+model boxcox(observations/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxTransLong;
+
+*Extract Lambda used for transformation;
+DATA Lambda(keep=Parameter FormattedValue rename=(FormattedValue=Lambda)); 
+   SET Details; 
+   where Description = 'Lambda Used';
+   RUN;
+   
+Proc delete lib=work data=EbertLong Details;
+*Sort as required for PROC GLIMMIX BY statement, cleanup along the way;
+proc sort data=BoxCoxTransLong out=BoxCoxTransLong(where=(Untransformed is NOT MISSING) keep=Parameter trt insectno observations tobservations rename=(observations=untransformed tobservations=transformed)); label Parameter='Parameter'; by Parameter;
 run;
 
 *ANOVA with Tukey test procedure!;
 ods exclude none;
 ods graphics on / byline=title;  *byline ensures that Residual plot has a subtitle with variable name;
-*ods trace on; *used for testing to figure out ODS table names (see next line);
 
-*Supress unwanted tables from the output;
+*Supress "unwanted" tables from the output;
 ods exclude ModelInfo (PERSIST) ClassLevels (PERSIST) Dimensions (PERSIST) OptInfo (PERSIST) IterHistory (PERSIST) ConvergenceStatus (PERSIST) Tests3 (PERSIST);
-
-*output Diffs(Anova results) ans LSMLines (Tukey test groups) to datasets;
-ods output DIFFS=ANOVA;
-ods output LSMLines=Groups;
+ods output DIFFS=ANOVA; *save Diffs(Anova results); 
+ods output LSMLines=Groups; *Save LSMLines (Tukey test groups);
 Proc glimmix data=BoxCoxTransLong plots=residualpanel; by Parameter; class trt; model transformed=trt; random _residual_/group=trt; lsmeans trt/pdiff lines adjust=tukey alpha=0.05; title "ANOVA and Tukey test"; run;
 ods output close;
-*ods trace off;
 
 *Cleanup;
 proc delete lib=work data= BoxCoxTransLong; run;
 
 *Save tukey grouping in a table and clean it up;
 Data Groups; set Groups;
- Where Estimate ne ._; *where is more efficient than IF for subsetting;
- run;
-Data Groups; set Groups;
+ Where Estimate ne ._;
  drop EqLS1 EqLS2 EqLS3 EqLS4 EqLS5 EqLS6 EqLS7 Effect Method Estimate;
  Letter=cats(of Line:);
  drop of Line:;
@@ -5122,8 +5122,15 @@ Data Final; Set trtMeansLong Groups;
 merge trtMeansLong Groups; by Parameter trt;
 run;
 
+*And merge used lambda;
+Data Final;
+ MERGE Final(IN=In1) Lambda;
+ BY Parameter;
+ IF In1=1 then output Final; 
+run;
+
 *delete unncecessary datasets ("unncecessary" may vary for different use cases);
-proc delete lib=work data= trtMeansLong Groups;
+proc delete lib=work data= trtMeansLong Groups lambda;
 
 *export the Final table that combines untransformed means and Tukey grouping in one CSV file;
 *Name is given autmatically;
@@ -5162,5 +5169,4 @@ proc export data=ANOVA outfile="&OutPath.&InFile.-Output-ANOVA.csv" dbms=csv rep
  ods html close;
 run;
 */;
-
 quit;
