@@ -46,7 +46,7 @@
 *********************************************************************;
 options ls=100 ps=72;
 %let InPath = C:\Users\milan\Desktop\IITA Work\EPG Data\; *Folder with input file. WITH \ at the end please;
-%let InFile = CsvSwpTom-CST-SPT; *Input file name, Without extension please (it is assumed to be .csv);
+%let InFile = CsvSwpTomCot-CST-CsvSwp-SPT; *Input file name, Without extension please (it is assumed to be .csv);
 %let OutPath = C:\Users\milan\Desktop\IITA Work\EPG Data\testout\; *Folder to put the results, WITH \ at the end please;
 x "cd ""&OutPath.""";
 Data one(keep=insectno waveform dur);
@@ -5039,7 +5039,6 @@ run;
 *Use the macro variable MLIST in the DROP statement to drop missing and all 0 variables.;
 data Ebert;
    set Ebert;
-   IDNew=_n_;
    drop &mlist;
 run;
 *removing missing and all 0 variables finished!;
