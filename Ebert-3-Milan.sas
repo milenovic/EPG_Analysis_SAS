@@ -5113,12 +5113,7 @@ proc sql;
 quit;
 *Delete trtMeans, not needed anymore;
 proc delete lib=work data= trtMeans;
-proc transpose data=trtMeansLong out=trtMeansLong; by trt; id column; idlabel column;
-run;
-
-proc datasets lib = work nolist;
- modify trtMeansLong;
- rename _NAME_=Parameter;
+proc transpose data=trtMeansLong out=trtMeansLong(RENAME=(_NAME_=Parameter)); by trt; id column; idlabel column;
 run;
 
 *Finally merge the two datasets into a pretty table;
@@ -5153,7 +5148,7 @@ run;
 *** any of trt pairwise comparisons and does not want to scroll through HTML output ***
 ***************************************************************************************;
 
-*Make easy to read names of the parameters in the ANOVA table!;
+*Make parameters easy to read in the ANOVA table;
 Data ANOVA;
  Retain _LABEL_;
  MERGE ANOVA(IN=In1) Final(keep= Parameter _LABEL_);
