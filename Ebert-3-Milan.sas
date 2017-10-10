@@ -5043,13 +5043,7 @@ data Ebert;
 run;
 *removing missing and all 0 variables finished!;
 
-*invert variables that are too big. This may not be neccessary in all cases;
-*Note: it is possible to use maxdur instead of 43200;
-data ebert; set ebert;
-TtlPrbTm = 43200 - TtlPrbTm; 
-run;
-
-*Transpose Ebert to Long format and sort so BY statement can be used;
+*Transpose Ebert to Long format and sort so PROC TRANSREG BY statement can be used;
 Proc sort data=work.Ebert out=EbertLong (drop= maxdur); by insectno;
 run;
 proc transpose data=EbertLong out=EbertLong NAME = Parameter LABEL = ParameterLabel ;
@@ -5057,6 +5051,39 @@ proc transpose data=EbertLong out=EbertLong NAME = Parameter LABEL = ParameterLa
 run;
 proc sort data=EbertLong out=EbertLong(rename=(COL1=observations)); label Parameter='Parameter'; by Parameter;
 run;
+
+*Calculate min max mean median;
+ods exclude all;
+ods graphics on;
+ods output summary=ParamMeans; *NOTE: is there better way to get median in a table like we normally get means? ods out= did not work;
+Proc means data=ebertlong mean median min max; by Parameter;
+Run;
+Data ParamMeans (keep=Parameter observations_Median observations_Mean observations_Max rename=( observations_Median=median observations_Mean=mean observations_Max=max));
+set ParamMeans; 
+run;
+
+*********************;
+*Merge Proc Means and EbertLong;
+proc sort data=EbertLong; by Parameter;
+proc sort data=ParamMeans; by Parameter;
+Data EbertLong;
+ MERGE EbertLong(IN=In1) ParamMeans;
+ BY Parameter;
+ IF In1=1 then output EbertLong;
+ drop _LABEL_ N STD;
+run;
+proc delete lib=work data= ParamMeans;
+
+*********************;
+*invert if median>mean;
+Data EbertLong; set EbertLong;
+ if Observations = "." then Observations = observations;
+ else if median>mean then Observations = MAX-observations;
+ else Observations = observations;
+run;
+ 
+*THIS SORT IS CRITICAL, especially by observations!;
+proc sort data=ebertlong; by parameter observations; run;
 *Following two lines control BoxCox transformation output;
 ods exclude none;
 ods graphics on;
@@ -5064,14 +5091,25 @@ ods graphics on;
 ods output Details=Details;
 proc transreg detail nozeroconstant data=EbertLong nomiss; by Parameter; id insectno trt;
 model boxcox(observations/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxTransLong;
+Proc delete lib=work data=EbertLong Details;
 
 *Extract Lambda used for transformation;
-DATA Lambda(keep=Parameter FormattedValue rename=(FormattedValue=Lambda)); 
-   SET Details; 
-   where Description = 'Lambda Used';
-   RUN;
-   
-Proc delete lib=work data=EbertLong Details;
+Data Lambda(keep=Parameter FormattedValue rename=(FormattedValue=Lambda)); 
+   Set Details; 
+   Where Description = 'Lambda Used';
+   Run;
+
+*********************************************************************
+*** Custom transformation for selected variables can be set here  ***
+*** Useful if data requires transofrmation that is not a power    ***
+*** transformation (e.g. Arsin, LOGIT, etc.). If no custom        ***
+*** transformations are desired, this data step is commented out; ***
+*********************************************************************;
+Data BoxCoxTransLong; Set BoxCoxTransLong;
+ if parameter = "PrcntPrbE1" then TObservations = arsin(observations); *example of Arsin;
+ run;
+
+
 *Sort as required for PROC GLIMMIX BY statement, cleanup along the way;
 proc sort data=BoxCoxTransLong out=BoxCoxTransLong(where=(Untransformed is NOT MISSING) keep=Parameter trt insectno observations tobservations rename=(observations=untransformed tobservations=transformed)); label Parameter='Parameter'; by Parameter;
 run;
@@ -5093,12 +5131,14 @@ proc delete lib=work data= BoxCoxTransLong; run;
 *Save tukey grouping in a table and clean it up;
 Data Groups; set Groups;
  Where Estimate ne ._;
- drop EqLS1 EqLS2 EqLS3 EqLS4 EqLS5 EqLS6 EqLS7 Effect Method Estimate;
+ drop Effect Method Estimate;
  Letter=cats(of Line:);
  drop of Line:;
+ drop of EqLS:;
  run;
-
-Data Ebert; Set Ebert; TtlPrbTm = 43200 - TtlPrbTm; *revert to normal so the means are correct!;
+/*
+Data Ebert; Set Ebert; TtlPrbTm = maxdur - TtlPrbTm; run; *revert to normal so the means are correct!;
+*/;
 *Calculate Means for all variables. This will be combined with Groups later;
 Proc means data=ebert; 
      by trt;
@@ -5114,6 +5154,7 @@ quit;
 proc delete lib=work data= trtMeans;
 proc transpose data=trtMeansLong out=trtMeansLong(RENAME=(_NAME_=Parameter)); by trt; id column; idlabel column;
 run;
+
 
 *Finally merge the two datasets into a pretty table;
 Proc sort data=work.trtMeansLong; by Parameter trt;
