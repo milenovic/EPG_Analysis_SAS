@@ -5081,23 +5081,28 @@ Data EbertLong; set EbertLong;
  else if median>mean then Observations = MAX-observations;
  else Observations = observations;
 run;
+
+Data EbertLong; set EbertLong;
+trtnum=indexc(tranwrd('ABCDEFGHIJKLMNOPQRSTUVWXYZ',trim(left(upcase(trt))),'*'),'*');
+run;
  
 *THIS SORT IS CRITICAL, especially by observations!;
 proc sort data=ebertlong; by parameter observations; run;
 *Following two lines control BoxCox transformation output;
 ods exclude none;
 ods graphics on;
+ods trace on;
 *Transform all variables using BoxCox transformation;
 ods output Details=Details;
 proc transreg detail nozeroconstant data=EbertLong nomiss; by Parameter; id insectno trt;
-model boxcox(observations/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(transform); output out=BoxCoxTransLong;
-Proc delete lib=work data=EbertLong Details;
+model boxcox(observations/ LAMBDA= -3 TO 3 BY 0.20 PARAMETER=1)=identity(trtnum); output out=BoxCoxTransLong;
 
 *Extract Lambda used for transformation;
 Data Lambda(keep=Parameter FormattedValue rename=(FormattedValue=Lambda)); 
    Set Details; 
    Where Description = 'Lambda Used';
    Run;
+Proc delete lib=work data=EbertLong Details;
 
 *********************************************************************
 *** Custom transformation for selected variables can be set here  ***
