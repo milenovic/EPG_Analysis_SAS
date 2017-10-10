@@ -5058,7 +5058,7 @@ ods graphics on;
 ods output summary=ParamMeans; *NOTE: is there better way to get median in a table like we normally get means? ods out= did not work;
 Proc means data=ebertlong mean median min max; by Parameter;
 Run;
-Data ParamMeans (keep=Parameter observations_Median observations_Mean observations_Max rename=( observations_Median=median observations_Mean=mean observations_Max=max));
+Data ParamMeans (keep=Parameter observations_Median observations_Mean observations_Max observations_Min rename=( observations_Median=median observations_Mean=mean observations_Max=max observations_Min=min));
 set ParamMeans; 
 run;
 
@@ -5103,7 +5103,7 @@ Data Lambda(keep=Parameter FormattedValue rename=(FormattedValue=Lambda));
 *** Custom transformation for selected variables can be set here  ***
 *** Useful if data requires transofrmation that is not a power    ***
 *** transformation (e.g. Arsin, LOGIT, etc.). If no custom        ***
-*** transformations are desired, this data step is commented out; ***
+*** transformations are desired, this data step is commented out  ***
 *********************************************************************;
 Data BoxCoxTransLong; Set BoxCoxTransLong;
  if parameter = "PrcntPrbE1" then TObservations = arsin(observations); *example of Arsin;
