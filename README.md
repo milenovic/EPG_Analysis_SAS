@@ -20,4 +20,6 @@ Ebert, Timothy A., Elaine A. Backus, Miguel Cid, Alberto Fereres, and Michael E.
 
 Osborne, Jason W. "Improving your data transformations: Applying the Box-Cox transformation." Practical Assessment, Research & Evaluation 15, no. 12 (2010): 1-9. Available at: http://pareonline.net/pdf/v15n12.pdf
 
-LaLonde, Steven M. "Transforming variables for normality and linearity—when, how, why and why not's." In SAS conference proceedings NESUG, pp. 11-14. 2005.
+LaLonde, Steven M. "Transforming variables for normality and linearity—when, how, why and why not's." In SAS conference proceedings NESUG, pp. 11-14. 2005. Available at:  https://www.researchgate.net/profile/Steven_Lalonde/publication/267199697_Transforming_Variables_for_Normality_and_Linearity_-_When_How_Why_and_Why_Not's/links/54dcba210cf282895a3b166f/Transforming-Variables-for-Normality-and-Linearity-When-How-Why-and-Why-Nots.pdf
+
+Piepho, Hans-Peter. "A SAS macro for generating letter displays of pairwise mean comparisons." Communications in Biometry and Crop Science 7.1 (2012): 4-13. Available at: http://agrobiol.sggw.waw.pl/~cbcs/pobierz.php?plik=CBCS_7_1_2.pdf
